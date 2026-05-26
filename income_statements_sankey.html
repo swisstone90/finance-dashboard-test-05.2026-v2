@@ -1,0 +1,2085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Income Statement Sankey Dashboard — 25 Companies</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg-page: #f4f6fa;
+    --bg-card: white;
+    --bg-card-2: #f1f5f9;
+    --text-primary: #0a2540;
+    --text-secondary: #5a6a80;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --border-2: #eef1f6;
+    --shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  body.dark {
+    --bg-page: #0b1220;
+    --bg-card: #1e293b;
+    --bg-card-2: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --border-2: #1e293b;
+    --shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 24px;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    transition: background 0.25s, color 0.25s;
+  }
+  h1 {
+    font-size: 30px;
+    margin: 0 0 4px 0;
+    color: var(--text-primary);
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+  .theme-btn { color: #6b21a8; }
+  body.dark .theme-btn { color: #fbbf24; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 2), 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr !important; } }
+  .grid > .card.hidden-page { display: none; }
+  .card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    transition: background 0.25s;
+  }
+  .card-title { color: var(--text-primary); }
+  .stat-value { color: var(--text-primary); }
+  body.dark .global-toggle, body.dark .layout-btn, body.dark .sort-select, body.dark .card-toggle {
+    background: #334155; color: #f1f5f9; border-color: #475569;
+  }
+  body.dark .global-toggle.active { background: #2563eb; }
+  body.dark .global-toggle:hover:not(.active) { background: #475569; }
+  body.dark .layout-btn:hover { background: #475569; }
+  body.dark .layout-control { background: #1e293b; border-color: #475569; }
+  body.dark .layout-label { color: #cbd5e1; }
+  body.dark .layout-value { color: #f1f5f9; }
+  body.dark .mcap-pill { background: #1e3a8a; color: #dbeafe; }
+  body.dark .pe-pill { background: #78350f; color: #fde68a; }
+  body.dark .card-header { border-color: #334155; }
+  body.dark .stat-label, body.dark .card-period, body.dark .card-released { color: #94a3b8; }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    border-bottom: 2px solid #eef1f6;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+  .card-period {
+    font-size: 11px;
+    color: #6a7a90;
+    font-weight: 500;
+  }
+  .card-released {
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+  .card-released[title*="Next"] { color: #d97706; }
+  .card-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+  }
+  .header-right {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .mcap-pill {
+    background: #eef5ff;
+    color: #1e40af;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .pe-pill {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-left: 4px;
+  }
+  .r40-pill {
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-left: 4px;
+  }
+  .r40-pill.r40-good { background: #dcfce7; color: #166534; }
+  .r40-pill.r40-bad  { background: #fee2e2; color: #991b1b; }
+  .r40-pill.r40-na   { background: #f1f5f9; color: #64748b; }
+  body.dark .r40-pill.r40-good { background: #14532d; color: #bbf7d0; }
+  body.dark .r40-pill.r40-bad  { background: #7f1d1d; color: #fecaca; }
+  body.dark .r40-pill.r40-na   { background: #334155; color: #cbd5e1; }
+  .pill-row { display: flex; gap: 4px; flex-wrap: wrap; }
+  .card-toggle {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #1a2a3a;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .card-toggle:hover { background: #e2e8f0; }
+  .card-toggle.active { background: #16a34a; color: white; border-color: #16a34a; }
+  .card-toggle.active:hover { background: #15803d; border-color: #15803d; }
+  .stock-chart {
+    width: 100%;
+    display: none;
+  }
+  .rule40-chart {
+    width: 100%;
+    height: var(--chart-height, 420px);
+    display: none;
+  }
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .global-toggle {
+    background: white;
+    border: 1px solid #cbd5e1;
+    color: #1a2a3a;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .global-toggle.active { background: #1e40af; color: white; border-color: #1e40af; }
+  .global-toggle:hover:not(.active) { background: #f8fafc; }
+  .refresh-btn { color: #1e40af; }
+  .refresh-btn:hover { background: #eef5ff; border-color: #1e40af; }
+  .layout-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 3px 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .layout-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-right: 4px;
+  }
+  .layout-btn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #1a2a3a;
+    width: 24px;
+    height: 22px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .layout-btn:hover { background: #e2e8f0; }
+  .layout-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .layout-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 28px;
+    text-align: center;
+    user-select: none;
+  }
+  .pager { background: #eef5ff; border-color: #93c5fd; }
+  .sort-select {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #0a2540;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .sort-select:hover { background: #e2e8f0; }
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    h1 { font-size: 22px; }
+    .subtitle { font-size: 12px; margin-bottom: 12px; }
+    .controls { gap: 6px; }
+    .global-toggle { padding: 6px 10px; font-size: 12px; }
+    .grid { grid-template-columns: 1fr; gap: 14px; }
+    .card { padding: 14px 12px; }
+    .card-title { font-size: 16px; }
+    .card-period { display: none; }
+    .stats { gap: 10px; }
+    .stat-value { font-size: 13px; }
+    .chart, .stock-chart { height: 380px; }
+  }
+  .stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+  .stat { display: flex; flex-direction: column; }
+  .stat-label {
+    color: #6a7a90;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 9.5px;
+  }
+  .stat-value {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+  .stat-yoy { font-size: 10px; font-weight: 500; }
+  .pos { color: #16a34a; }
+  .neg { color: #dc2626; }
+  .chart { width: 100%; height: var(--chart-height, 420px); }
+  .stock-chart { height: var(--chart-height, 420px); }
+  .footer-note {
+    font-size: 10px;
+    color: #8a96a8;
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .global-footer {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 30px;
+    padding: 16px;
+  }
+  body.dark .footer-note { color: #cbd5e1; }
+  body.dark .pos { color: #4ade80 !important; }
+  body.dark .neg { color: #f87171 !important; }
+</style>
+</head>
+<body>
+
+<h1>Income Statement Sankey Dashboard — 25 Companies</h1>
+<div class="subtitle">Latest reported quarter or fiscal year. Amounts in billions, native currency. YoY shown where reported. Toggle to view 5-year stock chart.</div>
+
+<div class="controls">
+  <button class="global-toggle active" id="btn-view-sankey">Sankey income statement</button>
+  <button class="global-toggle" id="btn-view-stock">5-year stock chart</button>
+  <button class="global-toggle" id="btn-view-rule40">Rule of 40 (5y)</button>
+  <button class="global-toggle refresh-btn" id="btn-refresh" title="Reload page & refresh stock prices">🔄 Refresh</button>
+  <button class="global-toggle theme-btn" id="btn-theme" title="Toggle dark / light mode">🌙 Dark</button>
+  <div class="layout-control" title="Chart height (Sankey + stock charts)">
+    <span class="layout-label">📏 Height</span>
+    <button class="layout-btn" id="btn-height-dec">−</button>
+    <span class="layout-value" id="val-height">420</span>
+    <button class="layout-btn" id="btn-height-inc">+</button>
+  </div>
+  <div class="layout-control" title="Columns of charts per row">
+    <span class="layout-label">📐 Cols</span>
+    <button class="layout-btn" id="btn-cols-dec">−</button>
+    <span class="layout-value" id="val-cols">2</span>
+    <button class="layout-btn" id="btn-cols-inc">+</button>
+  </div>
+  <div class="layout-control" title="Sort cards">
+    <span class="layout-label">↕ Sort</span>
+    <select id="sort-select" class="sort-select">
+      <option value="default">Default order</option>
+      <option value="release">Latest results ↓</option>
+      <option value="pe">P/E ratio ↓</option>
+      <option value="net">Net profit % ↓</option>
+      <option value="gross">Gross margin % ↓</option>
+      <option value="rev">Revenue ↓ (USD)</option>
+      <option value="mcap">Market cap ↓ (USD)</option>
+      <option value="r40">Rule of 40 ↓</option>
+    </select>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="global-footer">
+  Style inspired by App Economy Insights · Data sources: company earnings releases · Some operating-expense splits are estimated where line-item disclosure is limited.
+</div>
+
+<script>
+// ====================================================================
+// Helpers
+// ====================================================================
+const C = {
+  rev:      '#3b82f6',
+  rev_seg:  '#60a5fa',
+  gross:    '#16a34a',
+  cost:     '#dc2626',
+  opex:     '#ef6262',
+  flow_rev:   'rgba(96,165,250,0.40)',
+  flow_gross: 'rgba(22,163,74,0.40)',
+  flow_cost:  'rgba(220,38,38,0.32)',
+  flow_opex:  'rgba(239,98,98,0.32)',
+};
+
+// pct color: green if positive concept (revenue/profit), red if expense
+function lbl(node, currency, unit) {
+  const sym = currency || '$';
+  const u = unit || 'B';
+  const value = node.value;
+  const v = (value < 0 ? '-' : '') + sym + Math.abs(value).toFixed(2) + u;
+  const pctStr = (node.pct != null) ? node.pct.toFixed(1) + '%' : '';
+  const kind = node.kind;
+  let pctColor = '#6a7a90';
+  if (kind === 'profit' || kind === 'rev') pctColor = '#16a34a';
+  else if (kind === 'cost' || kind === 'opex' || kind === 'tax') pctColor = '#dc2626';
+  // YoY (optional)
+  let yoyHtml = '';
+  if (node.yoy != null) {
+    const yoyColor = (node.yoy >= 0) ? '#16a34a' : '#dc2626';
+    const yoySign = (node.yoy >= 0 ? '+' : '');
+    yoyHtml = '<br><span style="color:' + yoyColor + ';font-weight:600;font-size:10px">' + yoySign + node.yoy.toFixed(0) + '% Y/Y</span>';
+  } else if (node.yoy_text) {
+    yoyHtml = '<br><span style="color:#6a7a90;font-size:10px">' + node.yoy_text + '</span>';
+  }
+  return node.name + '<br><b>' + v + '</b><br><span style="color:' + pctColor + ';font-weight:600">' + pctStr + '</span>' + yoyHtml;
+}
+
+function buildSankey(divId, cfg) {
+  const labels = cfg.nodes.map(n => lbl(n, cfg.currency, cfg.unit));
+  const node_color = cfg.nodes.map(n => {
+    switch (n.kind) {
+      case 'rev_seg': return C.rev_seg;
+      case 'rev': return C.rev;
+      case 'profit': return C.gross;
+      case 'cost': return C.cost;
+      case 'opex': return C.opex;
+      case 'tax': return C.cost;
+      default: return '#94a3b8';
+    }
+  });
+  const link_color = cfg.links.map(l => {
+    if (l.kind === 'rev') return C.flow_rev;
+    if (l.kind === 'profit') return C.flow_gross;
+    if (l.kind === 'cost') return C.flow_cost;
+    if (l.kind === 'opex') return C.flow_opex;
+    if (l.kind === 'tax') return C.flow_cost;
+    return 'rgba(150,150,150,0.3)';
+  });
+
+  const data = [{
+    type: 'sankey',
+    arrangement: 'snap',
+    node: {
+      pad: 12, thickness: 18,
+      line: { color: 'white', width: 1 },
+      label: labels, color: node_color,
+      x: cfg.nodes.map(n => n.x),
+      y: cfg.nodes.map(n => n.y),
+    },
+    link: {
+      source: cfg.links.map(l => l.s),
+      target: cfg.links.map(l => l.t),
+      value:  cfg.links.map(l => l.v),
+      color: link_color,
+      hovertemplate: '%{source.label} → %{target.label}<br>' + (cfg.currency || '$') + '%{value:.2f}' + (cfg.unit || 'B') + '<extra></extra>'
+    },
+    textfont: { size: 10, color: '#0a2540' }
+  }];
+  const layout = {
+    font: { family: 'Inter, -apple-system, Segoe UI, Roboto, sans-serif', size: 10, color: '#0a2540' },
+    margin: { l: 4, r: 4, t: 4, b: 4 },
+    paper_bgcolor: 'white',
+    plot_bgcolor: 'white',
+  };
+  Plotly.newPlot(divId, data, layout, { displayModeBar: false, responsive: true });
+}
+
+// ====================================================================
+// COMPANY DATA
+//   Each company: rev = total revenue (used to compute %)
+//   Standard layout indexes: revenue streams → Revenue → Gross profit / Cost of revenue
+//   → Operating profit / Operating expenses → Net profit / Tax + OpEx breakdown
+// ====================================================================
+const COMPANIES = [
+  // -------------------- 1. Tesla Q1 2026 --------------------
+  {
+    id: 'tsla', title: 'Tesla (TSLA)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 22.36, mcap: '$1.4T', tvSymbol: 'NASDAQ:TSLA', pe: '355', released: 'Apr 22, 2026', nextRelease: 'Jul 22, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$22.4B', '+16% Y/Y', 'pos'],
+      ['Gross margin', '21.1%', '+5 pp Y/Y', 'pos'],
+      ['Op income', '$0.94B', '+91% Y/Y', 'pos'],
+      ['Net income', '$0.48B', '+17% Y/Y', 'pos'],
+    ],
+    nodes: [
+      // 0..2 segments
+      {name:'Automotive',           value:16.20, pct:72.4, yoy:16, kind:'rev_seg', x:0.01, y:0.10},
+      {name:'Energy gen & storage', value:2.41,  pct:10.8, yoy:-12, kind:'rev_seg', x:0.01, y:0.45},
+      {name:'Services & other',     value:3.75,  pct:16.8, yoy:42, kind:'rev_seg', x:0.01, y:0.78},
+      // 3 revenue
+      {name:'Revenue',              value:22.36, pct:100,  yoy:16, kind:'rev',     x:0.27, y:0.50},
+      // 4..5 gp/cost
+      {name:'Gross profit',         value:4.73,  pct:21.1, yoy:50, kind:'profit',  x:0.50, y:0.30},
+      {name:'Cost of revenue',      value:17.63, pct:78.9, kind:'cost',    x:0.50, y:0.80},
+      // 6..7 op profit / opex
+      {name:'Operating profit',     value:0.94,  pct:4.2,  yoy:91, kind:'profit',  x:0.72, y:0.18},
+      {name:'Operating expenses',   value:3.78,  pct:16.9, kind:'opex',    x:0.72, y:0.55},
+      // 8..9 net / tax
+      {name:'Net profit',           value:0.48,  pct:2.1,  yoy:17, kind:'profit',  x:0.99, y:0.10},
+      {name:'Tax & other',          value:0.46,  pct:2.1,  kind:'tax',     x:0.99, y:0.30},
+      // 10..12 opex breakdown
+      {name:'R&D',                  value:1.95,  pct:8.7,  kind:'opex',    x:0.99, y:0.50},
+      {name:'SG&A',                 value:1.60,  pct:7.1,  kind:'opex',    x:0.99, y:0.72},
+      {name:'Restructuring',        value:0.23,  pct:1.0,  kind:'opex',    x:0.99, y:0.92},
+    ],
+    links: [
+      {s:0,t:3,v:16.20,kind:'rev'},{s:1,t:3,v:2.41,kind:'rev'},{s:2,t:3,v:3.75,kind:'rev'},
+      {s:3,t:4,v:4.73,kind:'profit'},{s:3,t:5,v:17.63,kind:'cost'},
+      {s:4,t:6,v:0.94,kind:'profit'},{s:4,t:7,v:3.78,kind:'cost'},
+      {s:6,t:8,v:0.48,kind:'profit'},{s:6,t:9,v:0.46,kind:'tax'},
+      {s:7,t:10,v:1.95,kind:'opex'},{s:7,t:11,v:1.60,kind:'opex'},{s:7,t:12,v:0.23,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 2. Nvidia Q4 FY26 --------------------
+  {
+    id: 'nvda', title: 'Nvidia (NVDA)', period: 'Q4 FY2026 · USD',
+    currency: '$', unit: 'B', rev: 68.10, mcap: '$5.2T', tvSymbol: 'NASDAQ:NVDA', pe: '33', released: 'Feb 25, 2026', nextRelease: 'May 28, 2026 (Q1 FY27)',
+    stats: [
+      ['Revenue', '$68.1B', '+73% Y/Y', 'pos'],
+      ['Gross margin', '75.0%', 'GAAP', 'pos'],
+      ['Op income', '$45.9B', '~67% margin', 'pos'],
+      ['Net income', '$43.0B', '+94% Y/Y', 'pos'],
+    ],
+    nodes: [
+      {name:'Data Center',  value:62.00, pct:91.0, yoy:75, kind:'rev_seg', x:0.01, y:0.10},
+      {name:'Gaming',       value:3.73,  pct:5.5,  yoy:47, kind:'rev_seg', x:0.01, y:0.40},
+      {name:'Pro Viz',      value:1.32,  pct:1.9,  yoy:159, kind:'rev_seg', x:0.01, y:0.55},
+      {name:'Automotive',   value:0.60,  pct:0.9,  yoy:6, kind:'rev_seg', x:0.01, y:0.68},
+      {name:'OEM / other',  value:0.45,  pct:0.7,  kind:'rev_seg', x:0.01, y:0.80},
+      {name:'Revenue',          value:68.10, pct:100,  yoy:73, kind:'rev',    x:0.27, y:0.50},
+      {name:'Gross profit',     value:51.08, pct:75.0, yoy:75, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue',  value:17.02, pct:25.0, kind:'cost',   x:0.50, y:0.85},
+      {name:'Operating profit', value:45.88, pct:67.4, yoy:80, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:5.20,pct:7.6,  kind:'opex',   x:0.72, y:0.65},
+      {name:'Net profit',       value:43.00, pct:63.1, yoy:94, kind:'profit', x:0.99, y:0.15},
+      {name:'Tax & other',      value:2.88,  pct:4.2,  kind:'tax',    x:0.99, y:0.30},
+      {name:'R&D',              value:4.30,  pct:6.3,  kind:'opex',   x:0.99, y:0.55},
+      {name:'SG&A',             value:0.90,  pct:1.3,  kind:'opex',   x:0.99, y:0.78},
+    ],
+    links: [
+      {s:0,t:5,v:62.00,kind:'rev'},{s:1,t:5,v:3.73,kind:'rev'},{s:2,t:5,v:1.32,kind:'rev'},{s:3,t:5,v:0.60,kind:'rev'},{s:4,t:5,v:0.45,kind:'rev'},
+      {s:5,t:6,v:51.08,kind:'profit'},{s:5,t:7,v:17.02,kind:'cost'},
+      {s:6,t:8,v:45.88,kind:'profit'},{s:6,t:9,v:5.20,kind:'cost'},
+      {s:8,t:10,v:43.00,kind:'profit'},{s:8,t:11,v:2.88,kind:'tax'},
+      {s:9,t:12,v:4.30,kind:'opex'},{s:9,t:13,v:0.90,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 3. Alphabet Q1 2026 --------------------
+  {
+    id: 'googl', title: 'Alphabet (GOOGL)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 109.9, mcap: '$4.2T', tvSymbol: 'NASDAQ:GOOGL', pe: '27', released: 'Apr 29, 2026', nextRelease: 'Jul 28, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$109.9B', '+22% Y/Y', 'pos'],
+      ['Op margin', '36.1%', '+2 pp Y/Y', 'pos'],
+      ['Op income', '$39.7B', '+30% Y/Y', 'pos'],
+      ['Net income', '$62.6B', '+81% Y/Y *', 'pos'],
+    ],
+    nodes: [
+      {name:'Google Search',     value:60.40, pct:55.0, yoy:19, kind:'rev_seg', x:0.01, y:0.10},
+      {name:'YouTube ads',       value:9.88,  pct:9.0,  kind:'rev_seg', x:0.01, y:0.28},
+      {name:'Network',           value:7.40,  pct:6.7,  kind:'rev_seg', x:0.01, y:0.42},
+      {name:'Subs/Devices/Other',value:12.00, pct:10.9, kind:'rev_seg', x:0.01, y:0.55},
+      {name:'Google Cloud',      value:20.00, pct:18.2, yoy:63, kind:'rev_seg', x:0.01, y:0.72},
+      {name:'Other Bets',        value:0.22,  pct:0.2,  kind:'rev_seg', x:0.01, y:0.88},
+      {name:'Revenue',           value:109.9, pct:100,  yoy:22, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit',      value:63.74, pct:58.0, kind:'profit',  x:0.45, y:0.30},
+      {name:'Cost of revenue',   value:46.16, pct:42.0, kind:'cost',    x:0.45, y:0.85},
+      {name:'Operating profit',  value:39.68, pct:36.1, yoy:30, kind:'profit',  x:0.65, y:0.22},
+      {name:'Operating expenses',value:24.06, pct:21.9, kind:'opex',    x:0.65, y:0.65},
+      {name:'Pre-tax income',    value:69.68, pct:63.4, kind:'profit',  x:0.83, y:0.15},
+      {name:'Equity gains (net)',value:30.00, pct:27.3, kind:'rev_seg', x:0.65, y:0.92},
+      {name:'Net profit',        value:62.58, pct:57.0, yoy:81, kind:'profit',  x:0.99, y:0.10},
+      {name:'Tax',               value:7.10,  pct:6.5,  kind:'tax',     x:0.99, y:0.30},
+      {name:'R&D',               value:16.10, pct:14.6, kind:'opex',    x:0.99, y:0.50},
+      {name:'Sales & Mktg',      value:5.50,  pct:5.0,  kind:'opex',    x:0.99, y:0.70},
+      {name:'G&A',               value:2.46,  pct:2.2,  kind:'opex',    x:0.99, y:0.88},
+    ],
+    links: [
+      {s:0,t:6,v:60.40,kind:'rev'},{s:1,t:6,v:9.88,kind:'rev'},{s:2,t:6,v:7.40,kind:'rev'},{s:3,t:6,v:12.00,kind:'rev'},{s:4,t:6,v:20.00,kind:'rev'},{s:5,t:6,v:0.22,kind:'rev'},
+      {s:6,t:7,v:63.74,kind:'profit'},{s:6,t:8,v:46.16,kind:'cost'},
+      {s:7,t:9,v:39.68,kind:'profit'},{s:7,t:10,v:24.06,kind:'cost'},
+      {s:9,t:11,v:39.68,kind:'profit'},
+      {s:12,t:11,v:30.00,kind:'profit'},
+      {s:11,t:13,v:62.58,kind:'profit'},{s:11,t:14,v:7.10,kind:'tax'},
+      {s:10,t:15,v:16.10,kind:'opex'},{s:10,t:16,v:5.50,kind:'opex'},{s:10,t:17,v:2.46,kind:'opex'},
+    ],
+    footnote: '* Net income includes ~$30B unrealized gains on equity investments — pushing net > op income.',
+  },
+
+  // -------------------- 4. AMD Q1 2026 --------------------
+  {
+    id: 'amd', title: 'AMD (AMD)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 10.29, mcap: '$580B', tvSymbol: 'NASDAQ:AMD', pe: '155', released: 'May 5, 2026', nextRelease: 'Aug 5, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$10.3B', '+38% Y/Y', 'pos'],
+      ['Gross margin', '53.0%', 'GAAP', 'pos'],
+      ['Op income', '$1.5B', '15% margin', 'pos'],
+      ['Net income', '$1.4B', '14% margin', 'pos'],
+    ],
+    nodes: [
+      {name:'Data Center',  value:5.80, pct:56.4, yoy:57, kind:'rev_seg', x:0.01, y:0.15},
+      {name:'Client',       value:2.90, pct:28.2, yoy:26, kind:'rev_seg', x:0.01, y:0.40},
+      {name:'Gaming',       value:0.72, pct:7.0,  yoy:11, kind:'rev_seg', x:0.01, y:0.58},
+      {name:'Embedded',     value:0.87, pct:8.5,  yoy:6, kind:'rev_seg', x:0.01, y:0.72},
+      {name:'Revenue',      value:10.29,pct:100,  yoy:38, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit', value:5.46, pct:53.0, kind:'profit',  x:0.50, y:0.30},
+      {name:'Cost of sales',value:4.84, pct:47.0, kind:'cost',    x:0.50, y:0.85},
+      {name:'Operating profit', value:1.50, pct:14.6, kind:'profit', x:0.72, y:0.18},
+      {name:'Operating expenses', value:3.96, pct:38.5, kind:'opex', x:0.72, y:0.55},
+      {name:'Net profit',   value:1.40, pct:13.6, yoy:60, kind:'profit', x:0.99, y:0.10},
+      {name:'Tax & other',  value:0.10, pct:1.0,  kind:'tax',    x:0.99, y:0.22},
+      {name:'R&D',          value:2.00, pct:19.4, kind:'opex',   x:0.99, y:0.42},
+      {name:'Mktg & G&A',   value:0.85, pct:8.3,  kind:'opex',   x:0.99, y:0.60},
+      {name:'Amortization', value:0.85, pct:8.3,  kind:'opex',   x:0.99, y:0.78},
+      {name:'Other',        value:0.26, pct:2.5,  kind:'opex',   x:0.99, y:0.93},
+    ],
+    links: [
+      {s:0,t:4,v:5.80,kind:'rev'},{s:1,t:4,v:2.90,kind:'rev'},{s:2,t:4,v:0.72,kind:'rev'},{s:3,t:4,v:0.87,kind:'rev'},
+      {s:4,t:5,v:5.46,kind:'profit'},{s:4,t:6,v:4.84,kind:'cost'},
+      {s:5,t:7,v:1.50,kind:'profit'},{s:5,t:8,v:3.96,kind:'cost'},
+      {s:7,t:9,v:1.40,kind:'profit'},{s:7,t:10,v:0.10,kind:'tax'},
+      {s:8,t:11,v:2.00,kind:'opex'},{s:8,t:12,v:0.85,kind:'opex'},{s:8,t:13,v:0.85,kind:'opex'},{s:8,t:14,v:0.26,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 5. Apple Q2 FY26 --------------------
+  {
+    id: 'aapl', title: 'Apple (AAPL)', period: 'Q2 FY2026 · USD',
+    currency: '$', unit: 'B', rev: 111.18, mcap: '$3.9T', tvSymbol: 'NASDAQ:AAPL', pe: '34', released: 'Apr 30, 2026', nextRelease: 'Jul 30, 2026 (Q3 FY26)',
+    stats: [
+      ['Revenue', '$111.2B', '+17% Y/Y', 'pos'],
+      ['Gross margin', '49.3%', 'record', 'pos'],
+      ['Op income', '$35.6B', '~32% margin', 'pos'],
+      ['Net income', '$29.6B', '+22% Y/Y', 'pos'],
+    ],
+    nodes: [
+      {name:'iPhone',   value:56.99, pct:51.3, yoy:22, kind:'rev_seg', x:0.01, y:0.12},
+      {name:'Services', value:30.98, pct:27.9, yoy:16, kind:'rev_seg', x:0.01, y:0.38},
+      {name:'Wearables/Home', value:7.90, pct:7.1, kind:'rev_seg', x:0.01, y:0.55},
+      {name:'Mac',      value:8.40,  pct:7.6,  kind:'rev_seg', x:0.01, y:0.70},
+      {name:'iPad',     value:6.91,  pct:6.2,  kind:'rev_seg', x:0.01, y:0.85},
+      {name:'Revenue',  value:111.18,pct:100,  yoy:17, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit', value:54.81, pct:49.3, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:56.37, pct:50.7, kind:'cost', x:0.50, y:0.85},
+      {name:'Operating profit', value:35.59, pct:32.0, kind:'profit', x:0.72, y:0.18},
+      {name:'Operating expenses', value:19.22, pct:17.3, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit',   value:29.60, pct:26.6, yoy:22, kind:'profit', x:0.99, y:0.12},
+      {name:'Tax & other',  value:5.99,  pct:5.4,  kind:'tax',    x:0.99, y:0.26},
+      {name:'R&D',          value:9.40,  pct:8.5,  kind:'opex',   x:0.99, y:0.55},
+      {name:'SG&A',         value:9.82,  pct:8.8,  kind:'opex',   x:0.99, y:0.80},
+    ],
+    links: [
+      {s:0,t:5,v:56.99,kind:'rev'},{s:1,t:5,v:30.98,kind:'rev'},{s:2,t:5,v:7.90,kind:'rev'},{s:3,t:5,v:8.40,kind:'rev'},{s:4,t:5,v:6.91,kind:'rev'},
+      {s:5,t:6,v:54.81,kind:'profit'},{s:5,t:7,v:56.37,kind:'cost'},
+      {s:6,t:8,v:35.59,kind:'profit'},{s:6,t:9,v:19.22,kind:'cost'},
+      {s:8,t:10,v:29.60,kind:'profit'},{s:8,t:11,v:5.99,kind:'tax'},
+      {s:9,t:12,v:9.40,kind:'opex'},{s:9,t:13,v:9.82,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 6. Microsoft Q3 FY26 --------------------
+  {
+    id: 'msft', title: 'Microsoft (MSFT)', period: 'Q3 FY2026 · USD',
+    currency: '$', unit: 'B', rev: 82.9, mcap: '$3.2T', tvSymbol: 'NASDAQ:MSFT', pe: '25', released: 'Apr 29, 2026', nextRelease: 'Jul 29, 2026 (Q4 FY26)',
+    stats: [
+      ['Revenue', '$82.9B', '+18% Y/Y', 'pos'],
+      ['Gross margin', '~70%', 'est.', 'pos'],
+      ['Op income', '~$38.1B', '~46% margin', 'pos'],
+      ['Net income', '$31.8B', '+20% Y/Y', 'pos'],
+    ],
+    nodes: [
+      {name:'Productivity & BP', value:35.0, pct:42.2, yoy:17, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'Intelligent Cloud', value:34.7, pct:41.9, yoy:30, kind:'rev_seg', x:0.01, y:0.48},
+      {name:'More Personal Computing', value:13.2, pct:15.9, yoy:-1, kind:'rev_seg', x:0.01, y:0.78},
+      {name:'Revenue', value:82.9, pct:100, yoy:18, kind:'rev', x:0.27, y:0.50},
+      {name:'Gross profit', value:58.03, pct:70.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:24.87, pct:30.0, kind:'cost', x:0.50, y:0.85},
+      {name:'Operating profit', value:38.13, pct:46.0, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:19.90, pct:24.0, kind:'opex', x:0.72, y:0.65},
+      {name:'Net profit', value:31.80, pct:38.4, yoy:20, kind:'profit', x:0.99, y:0.15},
+      {name:'Tax & other', value:6.33, pct:7.6, kind:'tax', x:0.99, y:0.30},
+      {name:'R&D', value:9.00, pct:10.9, kind:'opex', x:0.99, y:0.55},
+      {name:'Sales & Mktg', value:7.00, pct:8.4, kind:'opex', x:0.99, y:0.75},
+      {name:'G&A', value:3.90, pct:4.7, kind:'opex', x:0.99, y:0.92},
+    ],
+    links: [
+      {s:0,t:3,v:35.0,kind:'rev'},{s:1,t:3,v:34.7,kind:'rev'},{s:2,t:3,v:13.2,kind:'rev'},
+      {s:3,t:4,v:58.03,kind:'profit'},{s:3,t:5,v:24.87,kind:'cost'},
+      {s:4,t:6,v:38.13,kind:'profit'},{s:4,t:7,v:19.90,kind:'cost'},
+      {s:6,t:8,v:31.80,kind:'profit'},{s:6,t:9,v:6.33,kind:'tax'},
+      {s:7,t:10,v:9.00,kind:'opex'},{s:7,t:11,v:7.00,kind:'opex'},{s:7,t:12,v:3.90,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 7. Amazon Q1 2026 --------------------
+  {
+    id: 'amzn', title: 'Amazon (AMZN)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 181.5, mcap: '$2.8T', tvSymbol: 'NASDAQ:AMZN', pe: '32', released: 'Apr 29, 2026', nextRelease: 'Jul 31, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$181.5B', '+17% Y/Y', 'pos'],
+      ['Op income', '$23.9B', '13.1% margin', 'pos'],
+      ['AWS Op inc', '$14.2B', '+23% Y/Y', 'pos'],
+      ['Net income', '~$20B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'North America', value:104.1, pct:57.4, yoy:12, kind:'rev_seg', x:0.01, y:0.15},
+      {name:'International', value:39.8,  pct:21.9, yoy:19, kind:'rev_seg', x:0.01, y:0.50},
+      {name:'AWS',           value:37.6,  pct:20.7, yoy:28, kind:'rev_seg', x:0.01, y:0.80},
+      {name:'Revenue',       value:181.5, pct:100,  yoy:17, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit',  value:87.12, pct:48.0, kind:'profit',  x:0.50, y:0.30},
+      {name:'Cost of revenue', value:94.38, pct:52.0, kind:'cost', x:0.50, y:0.85},
+      {name:'Operating profit', value:23.90, pct:13.1, yoy:30, kind:'profit', x:0.72, y:0.18},
+      {name:'Operating expenses', value:63.22, pct:34.8, kind:'opex', x:0.72, y:0.65},
+      {name:'Net profit',    value:20.00, pct:11.0, kind:'profit', x:0.99, y:0.10},
+      {name:'Tax & other',   value:3.90,  pct:2.1,  kind:'tax',    x:0.99, y:0.25},
+      {name:'Tech & content',value:25.50, pct:14.0, kind:'opex',   x:0.99, y:0.50},
+      {name:'Fulfillment + S&M', value:31.50, pct:17.4, kind:'opex', x:0.99, y:0.75},
+      {name:'G&A',           value:6.22,  pct:3.4,  kind:'opex',   x:0.99, y:0.93},
+    ],
+    links: [
+      {s:0,t:3,v:104.1,kind:'rev'},{s:1,t:3,v:39.8,kind:'rev'},{s:2,t:3,v:37.6,kind:'rev'},
+      {s:3,t:4,v:87.12,kind:'profit'},{s:3,t:5,v:94.38,kind:'cost'},
+      {s:4,t:6,v:23.90,kind:'profit'},{s:4,t:7,v:63.22,kind:'cost'},
+      {s:6,t:8,v:20.00,kind:'profit'},{s:6,t:9,v:3.90,kind:'tax'},
+      {s:7,t:10,v:25.50,kind:'opex'},{s:7,t:11,v:31.50,kind:'opex'},{s:7,t:12,v:6.22,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 8. ASML Q1 2026 --------------------
+  {
+    id: 'asml', title: 'ASML (ASML)', period: 'Q1 2026 · EUR',
+    currency: '€', unit: 'B', rev: 8.80, mcap: '$556B', tvSymbol: 'NASDAQ:ASML', pe: '52', released: 'Apr 15, 2026', nextRelease: 'Jul 16, 2026 (Q2)',
+    stats: [
+      ['Net sales', '€8.8B', '', 'pos'],
+      ['Gross margin', '53.0%', '', 'pos'],
+      ['Op margin', '36.0%', '', 'pos'],
+      ['Net income', '€2.8B', '31.4% margin', 'pos'],
+    ],
+    nodes: [
+      {name:'EUV systems',     value:4.20, pct:47.7, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'Non-EUV systems', value:2.10, pct:23.9, kind:'rev_seg', x:0.01, y:0.45},
+      {name:'Installed base mgmt', value:2.50, pct:28.4, kind:'rev_seg', x:0.01, y:0.75},
+      {name:'Net sales',       value:8.80, pct:100,  kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit',    value:4.66, pct:53.0, kind:'profit',  x:0.50, y:0.30},
+      {name:'Cost of sales',   value:4.14, pct:47.0, kind:'cost',    x:0.50, y:0.85},
+      {name:'Operating profit',value:3.17, pct:36.0, kind:'profit',  x:0.72, y:0.20},
+      {name:'Operating expenses', value:1.49, pct:16.9, kind:'opex', x:0.72, y:0.65},
+      {name:'Net profit',      value:2.76, pct:31.4, kind:'profit',  x:0.99, y:0.15},
+      {name:'Tax & other',     value:0.41, pct:4.7,  kind:'tax',     x:0.99, y:0.32},
+      {name:'R&D',             value:1.20, pct:13.6, kind:'opex',    x:0.99, y:0.60},
+      {name:'SG&A',            value:0.29, pct:3.3,  kind:'opex',    x:0.99, y:0.85},
+    ],
+    links: [
+      {s:0,t:3,v:4.20,kind:'rev'},{s:1,t:3,v:2.10,kind:'rev'},{s:2,t:3,v:2.50,kind:'rev'},
+      {s:3,t:4,v:4.66,kind:'profit'},{s:3,t:5,v:4.14,kind:'cost'},
+      {s:4,t:6,v:3.17,kind:'profit'},{s:4,t:7,v:1.49,kind:'cost'},
+      {s:6,t:8,v:2.76,kind:'profit'},{s:6,t:9,v:0.41,kind:'tax'},
+      {s:7,t:10,v:1.20,kind:'opex'},{s:7,t:11,v:0.29,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 9. Intuitive Surgical Q1 2026 --------------------
+  {
+    id: 'isrg', title: 'Intuitive Surgical (ISRG)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 2.77, mcap: '$162B', tvSymbol: 'NASDAQ:ISRG', pe: '53', released: 'Apr 22, 2026', nextRelease: 'Jul 22, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$2.77B', '+23% Y/Y', 'pos'],
+      ['Recurring rev', '86%', 'of total', 'pos'],
+      ['Op income', '~$0.97B', '~35% margin', 'pos'],
+      ['Net income', '~$0.78B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'Instruments & Acc.', value:1.74, pct:62.8, yoy:23, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'Systems',            value:0.60, pct:21.7, kind:'rev_seg', x:0.01, y:0.50},
+      {name:'Service',            value:0.434,pct:15.7, yoy:19, kind:'rev_seg', x:0.01, y:0.78},
+      {name:'Revenue',            value:2.77, pct:100,  yoy:23, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit',       value:1.86, pct:67.2, kind:'profit',  x:0.50, y:0.30},
+      {name:'Cost of revenue',    value:0.91, pct:32.8, kind:'cost',    x:0.50, y:0.82},
+      {name:'Operating profit',   value:0.97, pct:35.0, kind:'profit',  x:0.72, y:0.18},
+      {name:'Operating expenses', value:0.89, pct:32.1, kind:'opex',    x:0.72, y:0.55},
+      {name:'Net profit',         value:0.78, pct:28.2, kind:'profit',  x:0.99, y:0.10},
+      {name:'Tax & other',        value:0.19, pct:6.9,  kind:'tax',     x:0.99, y:0.28},
+      {name:'R&D',                value:0.42, pct:15.2, kind:'opex',    x:0.99, y:0.55},
+      {name:'SG&A',               value:0.47, pct:17.0, kind:'opex',    x:0.99, y:0.85},
+    ],
+    links: [
+      {s:0,t:3,v:1.74,kind:'rev'},{s:1,t:3,v:0.60,kind:'rev'},{s:2,t:3,v:0.434,kind:'rev'},
+      {s:3,t:4,v:1.86,kind:'profit'},{s:3,t:5,v:0.91,kind:'cost'},
+      {s:4,t:6,v:0.97,kind:'profit'},{s:4,t:7,v:0.89,kind:'cost'},
+      {s:6,t:8,v:0.78,kind:'profit'},{s:6,t:9,v:0.19,kind:'tax'},
+      {s:7,t:10,v:0.42,kind:'opex'},{s:7,t:11,v:0.47,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 10. Palantir Q1 2026 --------------------
+  {
+    id: 'pltr', title: 'Palantir (PLTR)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 1.63, mcap: '$306B', tvSymbol: 'NASDAQ:PLTR', pe: '143', released: 'May 4, 2026', nextRelease: 'Aug 5, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$1.63B', '+85% Y/Y', 'pos'],
+      ['Gross margin', '~80%', 'GAAP est.', 'pos'],
+      ['Op income', '$0.75B', '46% margin', 'pos'],
+      ['Adj. op income', '$0.98B', '60% margin', 'pos'],
+    ],
+    nodes: [
+      {name:'US Government',  value:0.687, pct:42.1, yoy:84, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'US Commercial',  value:0.595, pct:36.5, yoy:133, kind:'rev_seg', x:0.01, y:0.45},
+      {name:'International',  value:0.348, pct:21.4, kind:'rev_seg', x:0.01, y:0.75},
+      {name:'Revenue',        value:1.63,  pct:100,  yoy:85, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit',   value:1.30,  pct:80.0, kind:'profit',  x:0.50, y:0.30},
+      {name:'Cost of revenue',value:0.33,  pct:20.0, kind:'cost',    x:0.50, y:0.85},
+      {name:'Operating profit', value:0.75, pct:46.0, yoy:328, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:0.55, pct:34.0, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit',     value:0.55,  pct:33.7, kind:'profit',  x:0.99, y:0.15},
+      {name:'Tax & other',    value:0.20,  pct:12.3, kind:'tax',     x:0.99, y:0.32},
+      {name:'R&D',            value:0.13,  pct:8.0,  kind:'opex',    x:0.99, y:0.52},
+      {name:'Sales & Mktg',   value:0.21,  pct:12.9, kind:'opex',    x:0.99, y:0.72},
+      {name:'G&A',            value:0.21,  pct:12.9, kind:'opex',    x:0.99, y:0.93},
+    ],
+    links: [
+      {s:0,t:3,v:0.687,kind:'rev'},{s:1,t:3,v:0.595,kind:'rev'},{s:2,t:3,v:0.348,kind:'rev'},
+      {s:3,t:4,v:1.30,kind:'profit'},{s:3,t:5,v:0.33,kind:'cost'},
+      {s:4,t:6,v:0.75,kind:'profit'},{s:4,t:7,v:0.55,kind:'cost'},
+      {s:6,t:8,v:0.55,kind:'profit'},{s:6,t:9,v:0.20,kind:'tax'},
+      {s:7,t:10,v:0.13,kind:'opex'},{s:7,t:11,v:0.21,kind:'opex'},{s:7,t:12,v:0.21,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 11. SoFi Q1 2026 --------------------
+  {
+    id: 'sofi', title: 'SoFi (SOFI)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 1.146, mcap: '$21B', tvSymbol: 'NASDAQ:SOFI', pe: '32', released: 'Apr 29, 2026', nextRelease: 'Jul 28, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$1.15B', '+43% Y/Y', 'pos'],
+      ['Net income', '$0.17B', '+~150% Y/Y', 'pos'],
+      ['Members', '14.7M', '+35% Y/Y', 'pos'],
+      ['Originations', '$12.2B', '+68% Y/Y', 'pos'],
+    ],
+    nodes: [
+      {name:'Lending',          value:0.642, pct:56.0, yoy:55, kind:'rev_seg', x:0.01, y:0.20},
+      {name:'Financial Services', value:0.429, pct:37.4, yoy:41, kind:'rev_seg', x:0.01, y:0.50},
+      {name:'Tech Platform',    value:0.075, pct:6.5,  yoy:-27, kind:'rev_seg', x:0.01, y:0.78},
+      {name:'Net revenue',      value:1.146, pct:100,  yoy:43, kind:'rev',     x:0.27, y:0.50},
+      {name:'Operating expenses', value:0.936, pct:81.7, kind:'cost',  x:0.55, y:0.75},
+      {name:'Pre-tax profit',   value:0.21,  pct:18.3, kind:'profit',  x:0.55, y:0.20},
+      {name:'Net profit',       value:0.167, pct:14.6, yoy:150, kind:'profit',  x:0.99, y:0.10},
+      {name:'Tax',              value:0.043, pct:3.8,  kind:'tax',     x:0.99, y:0.25},
+      {name:'Cost of operations', value:0.55, pct:48.0, kind:'opex',   x:0.99, y:0.55},
+      {name:'Sales & Mktg',     value:0.21,  pct:18.3, kind:'opex',    x:0.99, y:0.78},
+      {name:'Tech & product',   value:0.18,  pct:15.7, kind:'opex',    x:0.99, y:0.95},
+    ],
+    links: [
+      {s:0,t:3,v:0.642,kind:'rev'},{s:1,t:3,v:0.429,kind:'rev'},{s:2,t:3,v:0.075,kind:'rev'},
+      {s:3,t:5,v:0.21,kind:'profit'},{s:3,t:4,v:0.936,kind:'cost'},
+      {s:5,t:6,v:0.167,kind:'profit'},{s:5,t:7,v:0.043,kind:'tax'},
+      {s:4,t:8,v:0.55,kind:'opex'},{s:4,t:9,v:0.21,kind:'opex'},{s:4,t:10,v:0.18,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 12. Match Group Q1 2026 --------------------
+  {
+    id: 'mtch', title: 'Match Group (MTCH)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 0.864, mcap: '$7.4B', tvSymbol: 'NASDAQ:MTCH', pe: '14', released: 'May 5, 2026', nextRelease: 'Aug 5, 2026 (Q2)', /* PE TTM 13.5 verified */
+    stats: [
+      ['Revenue', '$0.864B', '+4% Y/Y', 'pos'],
+      ['Adj. EBITDA', '$0.343B', '40% margin', 'pos'],
+      ['Net income', '$0.167B', '+42% Y/Y', 'pos'],
+      ['Hinge growth', '+28%', 'revenue', 'pos'],
+    ],
+    nodes: [
+      {name:'Tinder',     value:0.455, pct:52.7, yoy:2, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'Hinge',      value:0.195, pct:22.6, yoy:28, kind:'rev_seg', x:0.01, y:0.42},
+      {name:'MG Asia',    value:0.100, pct:11.6, kind:'rev_seg', x:0.01, y:0.62},
+      {name:'Other',      value:0.114, pct:13.2, kind:'rev_seg', x:0.01, y:0.82},
+      {name:'Revenue',    value:0.864, pct:100,  yoy:4, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit', value:0.605, pct:70.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:0.259, pct:30.0, kind:'cost', x:0.50, y:0.82},
+      {name:'Operating profit', value:0.245, pct:28.4, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:0.360, pct:41.7, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit', value:0.167, pct:19.3, yoy:42, kind:'profit', x:0.99, y:0.12},
+      {name:'Tax & other', value:0.078, pct:9.0, kind:'tax',    x:0.99, y:0.30},
+      {name:'Sales & Mktg', value:0.18, pct:20.8, kind:'opex',  x:0.99, y:0.55},
+      {name:'G&A',        value:0.13,  pct:15.0, kind:'opex',   x:0.99, y:0.75},
+      {name:'R&D',        value:0.05,  pct:5.8,  kind:'opex',   x:0.99, y:0.93},
+    ],
+    links: [
+      {s:0,t:4,v:0.455,kind:'rev'},{s:1,t:4,v:0.195,kind:'rev'},{s:2,t:4,v:0.100,kind:'rev'},{s:3,t:4,v:0.114,kind:'rev'},
+      {s:4,t:5,v:0.605,kind:'profit'},{s:4,t:6,v:0.259,kind:'cost'},
+      {s:5,t:7,v:0.245,kind:'profit'},{s:5,t:8,v:0.360,kind:'cost'},
+      {s:7,t:9,v:0.167,kind:'profit'},{s:7,t:10,v:0.078,kind:'tax'},
+      {s:8,t:11,v:0.18,kind:'opex'},{s:8,t:12,v:0.13,kind:'opex'},{s:8,t:13,v:0.05,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 13. Logitech FY2026 --------------------
+  {
+    id: 'logn', title: 'Logitech (LOGN)', period: 'FY 2026 · USD',
+    currency: '$', unit: 'B', rev: 4.84, mcap: 'CHF 11B', tvSymbol: 'SIX:LOGN', pe: '26', released: 'May 5, 2026', nextRelease: 'Jul 28, 2026 (Q1 FY27)',
+    stats: [
+      ['Revenue', '$4.84B', '+6% Y/Y', 'pos'],
+      ['Op income', '$0.78B', '+18% Y/Y', 'pos'],
+      ['Op margin', '~16%', 'GAAP', 'pos'],
+      ['Net income', '~$0.70B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'Gaming',     value:1.45, pct:30.0, kind:'rev_seg', x:0.01, y:0.10},
+      {name:'Keyboards & Mice', value:1.21, pct:25.0, kind:'rev_seg', x:0.01, y:0.30},
+      {name:'Video Collab', value:0.97, pct:20.0, kind:'rev_seg', x:0.01, y:0.50},
+      {name:'Headphones', value:0.48, pct:9.9, kind:'rev_seg',   x:0.01, y:0.65},
+      {name:'Other',      value:0.73, pct:15.1, kind:'rev_seg',  x:0.01, y:0.82},
+      {name:'Revenue',    value:4.84, pct:100,  yoy:6, kind:'rev',      x:0.27, y:0.50},
+      {name:'Gross profit', value:2.07, pct:42.8, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:2.77, pct:57.2, kind:'cost', x:0.50, y:0.85},
+      {name:'Operating profit', value:0.78, pct:16.0, yoy:18, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:1.30, pct:26.8, kind:'opex', x:0.72, y:0.65},
+      {name:'Net profit', value:0.70, pct:14.5, kind:'profit', x:0.99, y:0.15},
+      {name:'Tax & other', value:0.08, pct:1.5, kind:'tax',     x:0.99, y:0.30},
+      {name:'Sales & Mktg', value:0.65, pct:13.4, kind:'opex',  x:0.99, y:0.55},
+      {name:'R&D',        value:0.40, pct:8.3,  kind:'opex',    x:0.99, y:0.78},
+      {name:'G&A',        value:0.25, pct:5.2,  kind:'opex',    x:0.99, y:0.95},
+    ],
+    links: [
+      {s:0,t:5,v:1.45,kind:'rev'},{s:1,t:5,v:1.21,kind:'rev'},{s:2,t:5,v:0.97,kind:'rev'},{s:3,t:5,v:0.48,kind:'rev'},{s:4,t:5,v:0.73,kind:'rev'},
+      {s:5,t:6,v:2.07,kind:'profit'},{s:5,t:7,v:2.77,kind:'cost'},
+      {s:6,t:8,v:0.78,kind:'profit'},{s:6,t:9,v:1.30,kind:'cost'},
+      {s:8,t:10,v:0.70,kind:'profit'},{s:8,t:11,v:0.08,kind:'tax'},
+      {s:9,t:12,v:0.65,kind:'opex'},{s:9,t:13,v:0.40,kind:'opex'},{s:9,t:14,v:0.25,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 14. Alibaba Q4 FY2026 --------------------
+  {
+    id: 'baba', title: 'Alibaba (BABA)', period: 'Q4 FY2026 · RMB',
+    currency: '¥', unit: 'B', rev: 284.8, mcap: '$304B', tvSymbol: 'NYSE:BABA', pe: '21', released: 'May 15, 2026 (est.)', nextRelease: 'Aug 14, 2026 (Q1 FY27)',
+    stats: [
+      ['Revenue', '¥284.8B', '+9% Y/Y', 'pos'],
+      ['Cloud growth', '+35%', 'Y/Y', 'pos'],
+      ['Op income', '~¥34B', '~12% margin', 'pos'],
+      ['Net income', '~¥25B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'China e-commerce', value:159.3, pct:55.9, kind:'rev_seg', x:0.01, y:0.15},
+      {name:'Cloud Intelligence', value:37.0, pct:13.0, yoy:35, kind:'rev_seg', x:0.01, y:0.40},
+      {name:'Quick Commerce', value:20.8, pct:7.3, kind:'rev_seg', x:0.01, y:0.58},
+      {name:'All Other',      value:67.7, pct:23.8, kind:'rev_seg', x:0.01, y:0.80},
+      {name:'Revenue',        value:284.8, pct:100, yoy:9, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit',   value:113.9, pct:40.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:170.9, pct:60.0, kind:'cost',  x:0.50, y:0.85},
+      {name:'Operating profit', value:34.0, pct:11.9, kind:'profit', x:0.72, y:0.18},
+      {name:'Operating expenses', value:79.9, pct:28.1, kind:'opex', x:0.72, y:0.65},
+      {name:'Net profit',     value:25.0, pct:8.8, kind:'profit',   x:0.99, y:0.10},
+      {name:'Tax & other',    value:9.0,  pct:3.2, kind:'tax',      x:0.99, y:0.28},
+      {name:'Sales & Mktg',   value:35.0, pct:12.3, kind:'opex',    x:0.99, y:0.50},
+      {name:'R&D',            value:18.0, pct:6.3, kind:'opex',     x:0.99, y:0.72},
+      {name:'G&A',            value:26.9, pct:9.4, kind:'opex',     x:0.99, y:0.92},
+    ],
+    links: [
+      {s:0,t:4,v:159.3,kind:'rev'},{s:1,t:4,v:37.0,kind:'rev'},{s:2,t:4,v:20.8,kind:'rev'},{s:3,t:4,v:67.7,kind:'rev'},
+      {s:4,t:5,v:113.9,kind:'profit'},{s:4,t:6,v:170.9,kind:'cost'},
+      {s:5,t:7,v:34.0,kind:'profit'},{s:5,t:8,v:79.9,kind:'cost'},
+      {s:7,t:9,v:25.0,kind:'profit'},{s:7,t:10,v:9.0,kind:'tax'},
+      {s:8,t:11,v:35.0,kind:'opex'},{s:8,t:12,v:18.0,kind:'opex'},{s:8,t:13,v:26.9,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 15. CATL Q1 2026 --------------------
+  {
+    id: 'catl', title: 'CATL (300750.SZ)', period: 'Q1 2026 · RMB',
+    currency: '¥', unit: 'B', rev: 129.13, mcap: '¥2T', tvSymbol: 'SZSE:300750', pe: '25', released: 'Apr 24, 2026', nextRelease: 'Aug 22, 2026 (Q2)',
+    stats: [
+      ['Revenue', '¥129.1B', '+52% Y/Y', 'pos'],
+      ['Op income', '¥26.7B', '~21% margin', 'pos'],
+      ['Net profit', '¥20.7B', '+49% Y/Y', 'pos'],
+      ['EV battery share', '42.1%', 'global', 'pos'],
+    ],
+    nodes: [
+      {name:'EV batteries', value:90.4, pct:70.0, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'ESS',          value:25.8, pct:20.0, kind:'rev_seg', x:0.01, y:0.50},
+      {name:'Materials & svc', value:12.9, pct:10.0, kind:'rev_seg', x:0.01, y:0.78},
+      {name:'Revenue',      value:129.13, pct:100, yoy:52, kind:'rev',    x:0.27, y:0.50},
+      {name:'Gross profit', value:32.3, pct:25.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:96.83, pct:75.0, kind:'cost', x:0.50, y:0.85},
+      {name:'Operating profit', value:26.7, pct:20.7, kind:'profit', x:0.72, y:0.18},
+      {name:'Operating expenses', value:5.6, pct:4.3, kind:'opex', x:0.72, y:0.55},
+      {name:'Net profit',   value:20.74, pct:16.1, yoy:49, kind:'profit', x:0.99, y:0.10},
+      {name:'Tax & other',  value:5.96, pct:4.6, kind:'tax',     x:0.99, y:0.30},
+      {name:'R&D',          value:3.20, pct:2.5, kind:'opex',    x:0.99, y:0.55},
+      {name:'SG&A',         value:2.40, pct:1.9, kind:'opex',    x:0.99, y:0.80},
+    ],
+    links: [
+      {s:0,t:3,v:90.4,kind:'rev'},{s:1,t:3,v:25.8,kind:'rev'},{s:2,t:3,v:12.9,kind:'rev'},
+      {s:3,t:4,v:32.3,kind:'profit'},{s:3,t:5,v:96.83,kind:'cost'},
+      {s:4,t:6,v:26.7,kind:'profit'},{s:4,t:7,v:5.6,kind:'cost'},
+      {s:6,t:8,v:20.74,kind:'profit'},{s:6,t:9,v:5.96,kind:'tax'},
+      {s:7,t:10,v:3.20,kind:'opex'},{s:7,t:11,v:2.40,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 16. XPeng Q4 2025 --------------------
+  {
+    id: 'xpev', title: 'XPeng (XPEV)', period: 'Q4 2025 · RMB *',
+    currency: '¥', unit: 'B', rev: 22.25, mcap: '$16.5B', tvSymbol: 'NYSE:XPEV', pe: 'n/m', released: 'Mar 18, 2026', nextRelease: 'May 27, 2026 (Q1 2026)',
+    stats: [
+      ['Revenue', '¥22.3B', 'first profitable Q', 'pos'],
+      ['Vehicle margin', '13.0%', '', 'pos'],
+      ['Gross margin', '21.3%', '+6.9 pp Y/Y', 'pos'],
+      ['Net profit', '¥0.38B', 'first ever', 'pos'],
+    ],
+    nodes: [
+      {name:'Vehicle sales', value:19.07, pct:85.7, yoy:30, kind:'rev_seg', x:0.01, y:0.20},
+      {name:'Services & other', value:3.18, pct:14.3, yoy:122, kind:'rev_seg', x:0.01, y:0.55},
+      {name:'Revenue',       value:22.25, pct:100, yoy:71, kind:'rev',    x:0.27, y:0.40},
+      {name:'Gross profit',  value:4.74, pct:21.3, kind:'profit', x:0.50, y:0.20},
+      {name:'Cost of revenue', value:17.51, pct:78.7, kind:'cost', x:0.50, y:0.75},
+      {name:'Operating expenses', value:4.78, pct:21.5, kind:'opex', x:0.72, y:0.45},
+      {name:'Other income (subsidies)', value:0.42, pct:1.9, kind:'rev_seg', x:0.27, y:0.92},
+      {name:'Net profit',    value:0.38, pct:1.7, kind:'profit',  x:0.99, y:0.10},
+      {name:'R&D',           value:2.00, pct:9.0, kind:'opex',    x:0.99, y:0.40},
+      {name:'Sales & Mktg',  value:2.00, pct:9.0, kind:'opex',    x:0.99, y:0.60},
+      {name:'G&A',           value:0.78, pct:3.5, kind:'opex',    x:0.99, y:0.82},
+    ],
+    links: [
+      {s:0,t:2,v:19.07,kind:'rev'},{s:1,t:2,v:3.18,kind:'rev'},
+      {s:2,t:3,v:4.74,kind:'profit'},{s:2,t:4,v:17.51,kind:'cost'},
+      {s:3,t:5,v:4.74,kind:'cost'},
+      {s:6,t:5,v:0.04,kind:'rev'},{s:6,t:7,v:0.38,kind:'profit'},
+      {s:5,t:8,v:2.00,kind:'opex'},{s:5,t:9,v:2.00,kind:'opex'},{s:5,t:10,v:0.78,kind:'opex'},
+    ],
+    footnote: '* Q1 2026 not yet reported. Op result was a small loss (-¥0.04B) — non-op items (subsidies, interest) lifted to net profit ¥0.38B.',
+  },
+
+  // -------------------- 17. Joby Aviation Q1 2026 --------------------
+  {
+    id: 'joby', title: 'Joby Aviation (JOBY)', period: 'Q1 2026 · USD',
+    currency: '$', unit: 'B', rev: 0.240, mcap: '$8.9B', tvSymbol: 'NYSE:JOBY', pe: 'n/m', released: 'May 6, 2026', nextRelease: 'Aug 6, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$0.024B', 'first meaningful', 'pos'],
+      ['Op loss', '-$0.234B', '', 'neg'],
+      ['Net loss', '-$0.110B', 'incl. warrant gain', 'neg'],
+      ['Cash & ST inv.', '$2.47B', '', 'pos'],
+    ],
+    nodes: [
+      {name:'Revenue',                 value:0.024, pct:10.0,  kind:'rev_seg', x:0.01, y:0.18},
+      {name:'Other income (warrants)', value:0.106, pct:44.2,  kind:'rev_seg', x:0.01, y:0.50},
+      {name:'Cash burn / net loss',    value:0.110, pct:45.8,  kind:'cost',    x:0.01, y:0.82},
+      {name:'Total funding',           value:0.240, pct:100,   kind:'rev',     x:0.45, y:0.50},
+      {name:'R&D',                     value:0.178, pct:74.2,  kind:'opex',    x:0.99, y:0.30},
+      {name:'SG&A',                    value:0.062, pct:25.8,  kind:'opex',    x:0.99, y:0.75},
+    ],
+    links: [
+      {s:0,t:3,v:0.024,kind:'rev'},
+      {s:1,t:3,v:0.106,kind:'profit'},
+      {s:2,t:3,v:0.110,kind:'cost'},
+      {s:3,t:4,v:0.178,kind:'opex'},
+      {s:3,t:5,v:0.062,kind:'opex'},
+    ],
+    footnote: 'Loss-making — diagram shows where the $240M of opex was funded (revenue + warrant gain + cash burn). %s vs. total funding, not revenue.',
+  },
+
+  // -------------------- 18. UiPath FY 2026 --------------------
+  {
+    id: 'path', title: 'UiPath (PATH)', period: 'FY 2026 · USD',
+    currency: '$', unit: 'B', rev: 1.611, mcap: '$4.9B', tvSymbol: 'NYSE:PATH', pe: '22', released: 'Mar 12, 2026', nextRelease: 'Jun 4, 2026 (Q1 FY27)',
+    stats: [
+      ['Revenue', '$1.61B', '+13% Y/Y', 'pos'],
+      ['ARR', '$1.85B', '+11% Y/Y', 'pos'],
+      ['Op income', '$0.06B', 'first GAAP profit', 'pos'],
+      ['FCF', '$0.37B', 'non-GAAP', 'pos'],
+    ],
+    nodes: [
+      {name:'Subscription services', value:0.955, pct:59.3, yoy:19, kind:'rev_seg', x:0.01, y:0.30},
+      {name:'Licenses & services', value:0.656, pct:40.7, kind:'rev_seg', x:0.01, y:0.70},
+      {name:'Revenue', value:1.611, pct:100, yoy:13, kind:'rev', x:0.27, y:0.50},
+      {name:'Gross profit', value:1.337, pct:83.0, kind:'profit', x:0.50, y:0.28},
+      {name:'Cost of revenue', value:0.274, pct:17.0, kind:'cost', x:0.50, y:0.88},
+      {name:'Operating profit', value:0.057, pct:3.5, kind:'profit', x:0.72, y:0.10},
+      {name:'Operating expenses', value:1.280, pct:79.5, kind:'opex', x:0.72, y:0.55},
+      {name:'Net profit', value:0.045, pct:2.8, kind:'profit', x:0.99, y:0.05},
+      {name:'Tax & other', value:0.012, pct:0.7, kind:'tax', x:0.99, y:0.18},
+      {name:'Sales & Mktg', value:0.700, pct:43.4, kind:'opex', x:0.99, y:0.50},
+      {name:'R&D', value:0.420, pct:26.1, kind:'opex', x:0.99, y:0.75},
+      {name:'G&A', value:0.160, pct:9.9, kind:'opex', x:0.99, y:0.95},
+    ],
+    links: [
+      {s:0,t:2,v:0.955,kind:'rev'},{s:1,t:2,v:0.656,kind:'rev'},
+      {s:2,t:3,v:1.337,kind:'profit'},{s:2,t:4,v:0.274,kind:'cost'},
+      {s:3,t:5,v:0.057,kind:'profit'},{s:3,t:6,v:1.280,kind:'cost'},
+      {s:5,t:7,v:0.045,kind:'profit'},{s:5,t:8,v:0.012,kind:'tax'},
+      {s:6,t:9,v:0.700,kind:'opex'},{s:6,t:10,v:0.420,kind:'opex'},{s:6,t:11,v:0.160,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 19. Swissquote FY 2025 --------------------
+  {
+    id: 'sqn', title: 'Swissquote (SQN)', period: 'FY 2025 · CHF',
+    currency: 'CHF ', unit: 'B', rev: 0.7233, mcap: 'CHF 8B', tvSymbol: 'SIX:SQN', pe: '22', released: 'Mar 20, 2026', nextRelease: 'Aug 14, 2026 (H1)',
+    stats: [
+      ['Net revenue', 'CHF 0.72B', '+9.4% Y/Y', 'pos'],
+      ['Op profit', 'CHF 0.42B', '+22% Y/Y', 'pos'],
+      ['Net profit', 'CHF ~0.35B', 'est.', 'pos'],
+      ['Client assets', 'CHF 88.7B', '+16% Y/Y', 'pos'],
+    ],
+    nodes: [
+      {name:'Net fee & commission', value:0.209, pct:28.9, yoy:18, kind:'rev_seg', x:0.01, y:0.10},
+      {name:'Net interest', value:0.218, pct:30.1, yoy:-3, kind:'rev_seg', x:0.01, y:0.30},
+      {name:'Net crypto',   value:0.086, pct:11.9, yoy:0, kind:'rev_seg', x:0.01, y:0.50},
+      {name:'Net eForex',   value:0.080, pct:11.1, kind:'rev_seg', x:0.01, y:0.65},
+      {name:'Trading & other', value:0.131, pct:18.0, kind:'rev_seg', x:0.01, y:0.85},
+      {name:'Net revenue',  value:0.7233, pct:100, yoy:9, kind:'rev',     x:0.30, y:0.50},
+      {name:'Pre-tax profit', value:0.420, pct:58.1, yoy:22, kind:'profit', x:0.60, y:0.25},
+      {name:'Operating expenses', value:0.303, pct:41.9, kind:'cost', x:0.60, y:0.78},
+      {name:'Net profit',   value:0.355, pct:49.1, kind:'profit',  x:0.99, y:0.15},
+      {name:'Tax',          value:0.065, pct:9.0,  kind:'tax',     x:0.99, y:0.35},
+      {name:'Personnel',    value:0.210, pct:29.0, kind:'opex',    x:0.99, y:0.65},
+      {name:'Mktg, IT & other', value:0.093, pct:12.9, kind:'opex',x:0.99, y:0.90},
+    ],
+    links: [
+      {s:0,t:5,v:0.209,kind:'rev'},{s:1,t:5,v:0.218,kind:'rev'},{s:2,t:5,v:0.086,kind:'rev'},{s:3,t:5,v:0.080,kind:'rev'},{s:4,t:5,v:0.131,kind:'rev'},
+      {s:5,t:6,v:0.420,kind:'profit'},{s:5,t:7,v:0.303,kind:'cost'},
+      {s:6,t:8,v:0.355,kind:'profit'},{s:6,t:9,v:0.065,kind:'tax'},
+      {s:7,t:10,v:0.210,kind:'opex'},{s:7,t:11,v:0.093,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 20. ABB FY 2025 --------------------
+  {
+    id: 'abbn', title: 'ABB (ABBN)', period: 'FY 2025 · USD (est.)',
+    currency: '$', unit: 'B', rev: 33.5, mcap: 'CHF 142B', tvSymbol: 'SIX:ABBN', pe: '43', released: 'Feb 5, 2026', nextRelease: 'Jul 17, 2026 (Q2)',
+    stats: [
+      ['Revenue', '~$33.5B', 'record', 'pos'],
+      ['Op EBITA margin', '~20%', 'expanding', 'pos'],
+      ['Op EBITA', '~$6.7B', 'record', 'pos'],
+      ['Free cash flow', '$4.6B', 'record', 'pos'],
+    ],
+    nodes: [
+      {name:'Electrification', value:14.2, pct:42.4, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'Motion',          value:8.4,  pct:25.1, kind:'rev_seg', x:0.01, y:0.48},
+      {name:'Process Automation', value:7.7, pct:23.0, kind:'rev_seg', x:0.01, y:0.70},
+      {name:'Robotics & Other', value:3.2, pct:9.6, kind:'rev_seg', x:0.01, y:0.90},
+      {name:'Revenue',         value:33.5, pct:100, kind:'rev',    x:0.27, y:0.50},
+      {name:'Gross profit',    value:11.7, pct:35.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:21.8, pct:65.0, kind:'cost',  x:0.50, y:0.85},
+      {name:'Op EBITA',        value:6.7,  pct:20.0, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:5.0, pct:15.0, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit',      value:4.6,  pct:13.7, kind:'profit', x:0.99, y:0.15},
+      {name:'Tax & other',     value:2.1,  pct:6.3,  kind:'tax',    x:0.99, y:0.32},
+      {name:'R&D',             value:1.4,  pct:4.2,  kind:'opex',   x:0.99, y:0.55},
+      {name:'SG&A',            value:3.6,  pct:10.7, kind:'opex',   x:0.99, y:0.82},
+    ],
+    links: [
+      {s:0,t:4,v:14.2,kind:'rev'},{s:1,t:4,v:8.4,kind:'rev'},{s:2,t:4,v:7.7,kind:'rev'},{s:3,t:4,v:3.2,kind:'rev'},
+      {s:4,t:5,v:11.7,kind:'profit'},{s:4,t:6,v:21.8,kind:'cost'},
+      {s:5,t:7,v:6.7,kind:'profit'},{s:5,t:8,v:5.0,kind:'cost'},
+      {s:7,t:9,v:4.6,kind:'profit'},{s:7,t:10,v:2.1,kind:'tax'},
+      {s:8,t:11,v:1.4,kind:'opex'},{s:8,t:12,v:3.6,kind:'opex'},
+    ],
+    footnote: 'Segment revenue split is estimated based on historical mix. ABB reports in USD.',
+  },
+
+  // -------------------- 21. LVMH FY 2025 --------------------
+  {
+    id: 'mc', title: 'LVMH (MC.PA)', period: 'FY 2025 · EUR',
+    currency: '€', unit: 'B', rev: 80.8, mcap: '€235B', tvSymbol: 'EURONEXT:MC', pe: '21', released: 'Jan 27, 2026', nextRelease: 'Jul 22, 2026 (H1)',
+    stats: [
+      ['Revenue', '€80.8B', '-2% Y/Y org', 'neg'],
+      ['Op margin', '22.0%', 'recurring', 'pos'],
+      ['Op profit', '€17.8B', 'recurring', 'pos'],
+      ['Net profit', '~€12.5B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'Fashion & Leather', value:37.8, pct:46.8, kind:'rev_seg', x:0.01, y:0.10},
+      {name:'Selective Retailing', value:17.5, pct:21.7, kind:'rev_seg', x:0.01, y:0.32},
+      {name:'Watches & Jewelry', value:10.5, pct:13.0, kind:'rev_seg', x:0.01, y:0.52},
+      {name:'Perfumes & Cosmetics', value:8.0, pct:9.9, kind:'rev_seg', x:0.01, y:0.70},
+      {name:'Wines & Spirits', value:5.7, pct:7.1, yoy:-5, kind:'rev_seg', x:0.01, y:0.85},
+      {name:'Other & holdings', value:1.3, pct:1.6, kind:'rev_seg', x:0.01, y:0.96},
+      {name:'Revenue',         value:80.8, pct:100, yoy:-2, kind:'rev',     x:0.27, y:0.50},
+      {name:'Gross profit',    value:54.94, pct:68.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:25.86, pct:32.0, kind:'cost',  x:0.50, y:0.85},
+      {name:'Op profit',       value:17.8, pct:22.0, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:37.14, pct:46.0, kind:'opex', x:0.72, y:0.65},
+      {name:'Net profit',      value:12.5, pct:15.5, kind:'profit', x:0.99, y:0.12},
+      {name:'Tax & minority',  value:5.3,  pct:6.6,  kind:'tax',    x:0.99, y:0.30},
+      {name:'Sales & Mktg',    value:25.0, pct:30.9, kind:'opex',   x:0.99, y:0.55},
+      {name:'G&A',             value:8.5,  pct:10.5, kind:'opex',   x:0.99, y:0.80},
+      {name:'R&D & other',     value:3.64, pct:4.5,  kind:'opex',   x:0.99, y:0.95},
+    ],
+    links: [
+      {s:0,t:6,v:37.8,kind:'rev'},{s:1,t:6,v:17.5,kind:'rev'},{s:2,t:6,v:10.5,kind:'rev'},{s:3,t:6,v:8.0,kind:'rev'},{s:4,t:6,v:5.7,kind:'rev'},{s:5,t:6,v:1.3,kind:'rev'},
+      {s:6,t:7,v:54.94,kind:'profit'},{s:6,t:8,v:25.86,kind:'cost'},
+      {s:7,t:9,v:17.8,kind:'profit'},{s:7,t:10,v:37.14,kind:'cost'},
+      {s:9,t:11,v:12.5,kind:'profit'},{s:9,t:12,v:5.3,kind:'tax'},
+      {s:10,t:13,v:25.0,kind:'opex'},{s:10,t:14,v:8.5,kind:'opex'},{s:10,t:15,v:3.64,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 22. Schneider Electric FY 2025 --------------------
+  {
+    id: 'su', title: 'Schneider Electric (SU.PA)', period: 'FY 2025 · EUR',
+    currency: '€', unit: 'B', rev: 40.2, mcap: '€159B', tvSymbol: 'EURONEXT:SU', pe: '36', released: 'Feb 19, 2026', nextRelease: 'Jul 31, 2026 (H1)',
+    stats: [
+      ['Revenue', '€40.2B', '+9% organic', 'pos'],
+      ['EBITA margin', '18.7%', '+50 bps', 'pos'],
+      ['Adj. EBITA', '€7.5B', '+12% organic', 'pos'],
+      ['Net profit', '~€5.5B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'Energy Management', value:30.6, pct:76.1, yoy:10, kind:'rev_seg', x:0.01, y:0.30},
+      {name:'Industrial Automation', value:9.6, pct:23.9, yoy:3, kind:'rev_seg', x:0.01, y:0.70},
+      {name:'Revenue', value:40.2, pct:100, yoy:9, kind:'rev',    x:0.27, y:0.50},
+      {name:'Gross profit',    value:16.48, pct:41.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:23.72, pct:59.0, kind:'cost',  x:0.50, y:0.85},
+      {name:'Adj. EBITA',      value:7.52,  pct:18.7, yoy:12, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:8.96, pct:22.3, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit',      value:5.5,   pct:13.7, kind:'profit', x:0.99, y:0.12},
+      {name:'Tax & D&A',       value:2.02,  pct:5.0,  kind:'tax',    x:0.99, y:0.32},
+      {name:'R&D',             value:2.10,  pct:5.2,  kind:'opex',   x:0.99, y:0.52},
+      {name:'Sales & Mktg',    value:4.50,  pct:11.2, kind:'opex',   x:0.99, y:0.75},
+      {name:'G&A',             value:2.36,  pct:5.9,  kind:'opex',   x:0.99, y:0.93},
+    ],
+    links: [
+      {s:0,t:2,v:30.6,kind:'rev'},{s:1,t:2,v:9.6,kind:'rev'},
+      {s:2,t:3,v:16.48,kind:'profit'},{s:2,t:4,v:23.72,kind:'cost'},
+      {s:3,t:5,v:7.52,kind:'profit'},{s:3,t:6,v:8.96,kind:'cost'},
+      {s:5,t:7,v:5.5,kind:'profit'},{s:5,t:8,v:2.02,kind:'tax'},
+      {s:6,t:9,v:2.10,kind:'opex'},{s:6,t:10,v:4.50,kind:'opex'},{s:6,t:11,v:2.36,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 23. Givaudan FY 2025 --------------------
+  {
+    id: 'givn', title: 'Givaudan (GIVN)', period: 'FY 2025 · CHF',
+    currency: 'CHF ', unit: 'B', rev: 7.472, mcap: 'CHF 26B', tvSymbol: 'SIX:GIVN', pe: '35', released: 'Jan 22, 2026', nextRelease: 'Jul 17, 2026 (H1)',
+    stats: [
+      ['Sales', 'CHF 7.47B', '+5.1% LFL', 'pos'],
+      ['EBITDA margin', '23.4%', '', 'pos'],
+      ['Op income', 'CHF 1.38B', '18.5% margin', 'pos'],
+      ['Net profit', '~CHF 1.05B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'Fragrance & Beauty', value:3.83, pct:51.3, yoy:8, kind:'rev_seg', x:0.01, y:0.30},
+      {name:'Taste & Wellbeing', value:3.642, pct:48.7, yoy:2, kind:'rev_seg', x:0.01, y:0.70},
+      {name:'Sales',  value:7.472, pct:100, yoy:5, kind:'rev',    x:0.27, y:0.50},
+      {name:'Gross profit', value:3.06, pct:41.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of goods', value:4.41, pct:59.0, kind:'cost', x:0.50, y:0.85},
+      {name:'Op income',   value:1.381, pct:18.5, yoy:-1, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:1.679, pct:22.5, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit',  value:1.05, pct:14.1, kind:'profit', x:0.99, y:0.15},
+      {name:'Tax & other', value:0.331, pct:4.4, kind:'tax',    x:0.99, y:0.32},
+      {name:'Sales & Mktg', value:0.85, pct:11.4, kind:'opex',  x:0.99, y:0.55},
+      {name:'R&D',         value:0.55, pct:7.4, kind:'opex',    x:0.99, y:0.78},
+      {name:'G&A',         value:0.279, pct:3.7, kind:'opex',   x:0.99, y:0.95},
+    ],
+    links: [
+      {s:0,t:2,v:3.83,kind:'rev'},{s:1,t:2,v:3.642,kind:'rev'},
+      {s:2,t:3,v:3.06,kind:'profit'},{s:2,t:4,v:4.41,kind:'cost'},
+      {s:3,t:5,v:1.381,kind:'profit'},{s:3,t:6,v:1.679,kind:'cost'},
+      {s:5,t:7,v:1.05,kind:'profit'},{s:5,t:8,v:0.331,kind:'tax'},
+      {s:6,t:9,v:0.85,kind:'opex'},{s:6,t:10,v:0.55,kind:'opex'},{s:6,t:11,v:0.279,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 24. Prysmian FY 2025 --------------------
+  {
+    id: 'pry', title: 'Prysmian (PRY.MI)', period: 'FY 2025 · EUR',
+    currency: '€', unit: 'B', rev: 19.65, mcap: '€26B', tvSymbol: 'MIL:PRY', pe: '35', released: 'Feb 26, 2026', nextRelease: 'Jul 30, 2026 (Q2)',
+    stats: [
+      ['Revenue', '€19.65B', '+5.4% organic', 'pos'],
+      ['EBITDA', '€2.40B', '14.2% margin', 'pos'],
+      ['Op profit', '~€1.81B', 'est.', 'pos'],
+      ['Net profit', '~€1.36B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'Industrial & Construction', value:7.52, pct:38.3, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'Power Grid', value:3.81, pct:19.4, kind:'rev_seg', x:0.01, y:0.42},
+      {name:'Transmission', value:3.26, pct:16.6, yoy:29, kind:'rev_seg', x:0.01, y:0.62},
+      {name:'Digital Solutions', value:1.62, pct:8.2, kind:'rev_seg', x:0.01, y:0.78},
+      {name:'Other / metals', value:3.44, pct:17.5, kind:'rev_seg', x:0.01, y:0.93},
+      {name:'Revenue', value:19.65, pct:100, yoy:5, kind:'rev',    x:0.27, y:0.50},
+      {name:'Gross profit',    value:5.30, pct:27.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:14.35, pct:73.0, kind:'cost',  x:0.50, y:0.85},
+      {name:'Op profit',       value:1.81, pct:9.2, kind:'profit', x:0.72, y:0.18},
+      {name:'Operating expenses', value:3.49, pct:17.8, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit',      value:1.36, pct:6.9, kind:'profit', x:0.99, y:0.10},
+      {name:'Tax & other',     value:0.45, pct:2.3, kind:'tax',    x:0.99, y:0.30},
+      {name:'D&A',             value:0.59, pct:3.0, kind:'opex',   x:0.99, y:0.50},
+      {name:'SG&A',            value:2.50, pct:12.7, kind:'opex',  x:0.99, y:0.72},
+      {name:'R&D',             value:0.40, pct:2.0, kind:'opex',   x:0.99, y:0.93},
+    ],
+    links: [
+      {s:0,t:5,v:7.52,kind:'rev'},{s:1,t:5,v:3.81,kind:'rev'},{s:2,t:5,v:3.26,kind:'rev'},{s:3,t:5,v:1.62,kind:'rev'},{s:4,t:5,v:3.44,kind:'rev'},
+      {s:5,t:6,v:5.30,kind:'profit'},{s:5,t:7,v:14.35,kind:'cost'},
+      {s:6,t:8,v:1.81,kind:'profit'},{s:6,t:9,v:3.49,kind:'cost'},
+      {s:8,t:10,v:1.36,kind:'profit'},{s:8,t:11,v:0.45,kind:'tax'},
+      {s:9,t:12,v:0.59,kind:'opex'},{s:9,t:13,v:2.50,kind:'opex'},{s:9,t:14,v:0.40,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 25. NKT FY 2025 --------------------
+  {
+    id: 'nkt', title: 'NKT (NKT.CO)', period: 'FY 2025 · EUR',
+    currency: '€', unit: 'B', rev: 2.722, mcap: 'DKK 43B', tvSymbol: 'OMXCOP:NKT', pe: '28', released: 'Feb 27, 2026', nextRelease: 'Aug 28, 2026 (Q2)',
+    stats: [
+      ['Revenue (std metals)', '€2.72B', '+6% organic', 'pos'],
+      ['EBITDA margin', '14.3%', '', 'pos'],
+      ['Op EBITDA', '€0.39B', 'record', 'pos'],
+      ['Net profit', '~€0.18B', 'est.', 'pos'],
+    ],
+    nodes: [
+      {name:'Solutions',   value:1.65, pct:60.6, yoy:7, kind:'rev_seg', x:0.01, y:0.20},
+      {name:'Applications', value:0.76, pct:27.9, kind:'rev_seg', x:0.01, y:0.55},
+      {name:'Service & Acc.', value:0.314, pct:11.5, yoy:22, kind:'rev_seg', x:0.01, y:0.80},
+      {name:'Revenue',     value:2.722, pct:100, yoy:6, kind:'rev',    x:0.27, y:0.50},
+      {name:'Gross profit', value:0.68, pct:25.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:2.04, pct:75.0, kind:'cost', x:0.50, y:0.85},
+      {name:'Op EBIT',     value:0.26, pct:9.5, kind:'profit', x:0.72, y:0.18},
+      {name:'Operating expenses', value:0.42, pct:15.4, kind:'opex', x:0.72, y:0.62},
+      {name:'Net profit',  value:0.18, pct:6.6, kind:'profit', x:0.99, y:0.10},
+      {name:'Tax & other', value:0.08, pct:2.9, kind:'tax',    x:0.99, y:0.28},
+      {name:'D&A',         value:0.13, pct:4.8, kind:'opex',   x:0.99, y:0.55},
+      {name:'SG&A',        value:0.24, pct:8.8, kind:'opex',   x:0.99, y:0.78},
+      {name:'R&D',         value:0.05, pct:1.8, kind:'opex',   x:0.99, y:0.95},
+    ],
+    links: [
+      {s:0,t:3,v:1.65,kind:'rev'},{s:1,t:3,v:0.76,kind:'rev'},{s:2,t:3,v:0.314,kind:'rev'},
+      {s:3,t:4,v:0.68,kind:'profit'},{s:3,t:5,v:2.04,kind:'cost'},
+      {s:4,t:6,v:0.26,kind:'profit'},{s:4,t:7,v:0.42,kind:'cost'},
+      {s:6,t:8,v:0.18,kind:'profit'},{s:6,t:9,v:0.08,kind:'tax'},
+      {s:7,t:10,v:0.13,kind:'opex'},{s:7,t:11,v:0.24,kind:'opex'},{s:7,t:12,v:0.05,kind:'opex'},
+    ],
+  },
+];
+
+// ====================================================================
+// Render all cards
+// ====================================================================
+const grid = document.getElementById('grid');
+const cardState = {}; // {id: 'sankey' | 'stock'}
+
+COMPANIES.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = c.id;
+  const stats = c.stats.map(s => '<div class="stat"><span class="stat-label">'+s[0]+'</span><span class="stat-value">'+s[1]+'</span><span class="stat-yoy '+s[3]+'">'+s[2]+'</span></div>').join('');
+  const footnote = c.footnote ? '<div class="footer-note">'+c.footnote+'</div>' : '';
+  const mcapHtml = c.mcap ? '<span class="mcap-pill" title="Market cap">'+c.mcap+'</span>' : '';
+  const peHtml = c.pe ? '<span class="pe-pill" title="P/E ratio (TTM)">P/E '+c.pe+'</span>' : '';
+  // Rule of 40 chip: read current value from RULE40_HISTORY (last anchor)
+  const r40Hist = (typeof RULE40_HISTORY !== 'undefined') ? RULE40_HISTORY[c.id] : null;
+  const r40Val = r40Hist ? r40Hist[r40Hist.length - 1] : null;
+  let r40Html = '';
+  if (r40Val != null) {
+    const cls = r40Val >= 40 ? 'r40-good' : 'r40-bad';
+    r40Html = '<span class="r40-pill '+cls+'" title="Rule of 40 (revenue growth % + op margin %)">R40 '+r40Val+'</span>';
+  } else {
+    r40Html = '<span class="r40-pill r40-na" title="Rule of 40 not applicable">R40 n/m</span>';
+  }
+  const pillsHtml = '<div class="pill-row">'+mcapHtml+peHtml+r40Html+'</div>';
+  const released = c.released ? '<span class="card-released" title="When these results were published">📅 Reported '+c.released+'</span>' : '';
+  const nextRel = c.nextRelease ? '<span class="card-released" title="Next earnings release expected">⏭ Next: '+c.nextRelease+'</span>' : '';
+  card.innerHTML =
+    '<div class="card-header">' +
+      '<div>' +
+        '<h2 class="card-title">'+c.title+'</h2>' +
+        '<div class="card-period">'+c.period+'</div>' +
+      '</div>' +
+      '<div class="header-right">' +
+        '<div class="card-meta">' +
+          pillsHtml +
+          released +
+          nextRel +
+        '</div>' +
+        '<button class="card-toggle" data-card-id="'+c.id+'" title="Cycle views: Sankey → Stock → Rule of 40">📈 Stock chart</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="stats">'+stats+'</div>' +
+    '<div id="chart-'+c.id+'" class="chart"></div>' +
+    '<div id="stock-'+c.id+'" class="stock-chart"></div>' +
+    '<div id="rule40-'+c.id+'" class="rule40-chart"></div>' +
+    footnote;
+  grid.appendChild(card);
+  buildSankey('chart-'+c.id, c);
+  cardState[c.id] = 'sankey';
+});
+
+// ====================================================================
+// Toggle: Sankey ↔ Stock chart (TradingView widget, lazy-loaded)
+// ====================================================================
+// ====================================================================
+// Embedded 5-year quarterly price + P/E history (approximate, May 2026)
+// Format: [prices array, PE array] aligned with STOCK_DATES
+// PE = null where company was loss-making (PE not meaningful)
+// ====================================================================
+const STOCK_DATES = ['2021-06-30','2021-12-31','2022-06-30','2022-12-31','2023-06-30','2023-12-31','2024-06-30','2024-12-31','2025-06-30','2025-12-31','2026-05-07'];
+
+const STOCK_HISTORY = {
+  // US Tech (USD)
+  tsla:  [[230,360,220,125,270,250,200,410,320,400,440],     [300,380,100, 32, 75, 80, 65,130,200,280,355]],
+  nvda:  [[ 19, 29, 15, 15, 42, 50,120,135,130,175,215],     [ 95, 90, 50, 75,200, 60, 60, 50, 42, 38, 33]],
+  googl: [[125,145,110, 90,120,140,180,195,175,210,338],     [ 30, 28, 22, 18, 24, 26, 27, 25, 22, 25, 27]],
+  amd:   [[ 90,145, 75, 65,115,145,160,120,110,210,360],     [ 40, 55,150, 75,200,400,250,100,110,130,155]],
+  aapl:  [[135,178,135,130,185,195,210,250,225,255,255],     [ 28, 30, 23, 21, 30, 32, 33, 40, 32, 33, 34]],
+  msft:  [[270,335,255,240,335,375,445,425,460,495,470],     [ 35, 38, 25, 24, 32, 36, 40, 32, 30, 27, 25]],
+  amzn:  [[170,165,105, 85,135,150,195,225,210,235,200],     [ 55, 60, null,null, 80, 75, 55, 50, 40, 35, 32]],
+  // Semis & Software
+  asml:  [[700,720,500,600,720,770,1080,800,750,820,850],    [ 45, 45, 32, 35, 40, 42, 45, 38, 45, 50, 52]],
+  isrg:  [[ 95,360,210,250,335,365,460,580,500,580,560],     [ 75, 80, 60, 70, 70, 75, 78, 90, 80, 60, 53]],
+  pltr:  [[ 25, 18,  8,  6, 16, 17, 26, 78,135,200,135],     [null,null,null,null,200,250,400,500,350,200,143]],
+  sofi:  [[ 19, 16,  6,  4,  8,  9,  7, 16, 14, 22, 18],     [null,null,null,null,null,null,null, 50, 40, 36, 32]],
+  mtch:  [[155,118, 80, 42, 45, 36, 32, 30, 36, 32, 30],     [ 60, 30, 30, 22, 18, 16, 14, 13, 14, 14, 14]],
+  path:  [[ 75, 47, 22, 13, 17, 24, 12, 13, 14, 12, 12],     [null,null,null,null,null,null,null,null,null,30, 22]],
+  // Swiss / European in CHF/EUR (approximate)
+  logn:  [[105,75, 50, 50, 70, 95, 80, 90, 88, 90, 73],      [ 25, 18, 14, 14, 18, 22, 18, 18, 20, 24, 26]],
+  baba:  [[210,120, 110, 90, 80, 75, 75, 85, 110,140, 130],  [ 25, 18, 18, 16, 14, 12, 12, 13, 15, 18, 21]],
+  catl:  [[480,580,540,400,210,160,200,250,280,440,460],     [ 60, 75, 70, 35, 22, 18, 22, 30, 28, 30, 25]],
+  xpev:  [[ 38, 50, 22, 10, 12, 17, 9, 14, 18, 24, 22],      [null,null,null,null,null,null,null,null,null,null,null]],
+  joby:  [[ 9, 6.5, 4, 3, 5, 7, 5, 7, 8, 9, 7],              [null,null,null,null,null,null,null,null,null,null,null]],
+  sqn:   [[160,200,140,140,200,230,290,330,400,500,520],     [ 22, 25, 18, 18, 22, 24, 26, 28, 25, 24, 22]],
+  abbn:  [[ 33, 35, 26, 30, 36, 41, 50, 55, 56, 60, 62],     [ 22, 24, 18, 22, 26, 28, 30, 32, 36, 40, 43]],
+  // EU
+  mc:    [[670,740,580,720,860,720,750,640,560,580,460],     [ 26, 28, 22, 26, 28, 24, 24, 22, 20, 22, 21]],
+  su:    [[140,170,110,135,165,200,225,210,245,260,278],     [ 25, 30, 22, 25, 28, 30, 28, 26, 30, 33, 36]],
+  givn:  [[3700,4100,3000,3000,3300,3700,4000,3850,4100,3850,2800],[ 35, 40, 32, 30, 30, 32, 30, 28, 30, 33, 35]],
+  pry:   [[ 30, 36, 24, 35, 45, 41, 60, 64, 50, 55, 92],     [ 20, 22, 18, 22, 24, 22, 22, 20, 25, 30, 35]],
+  nkt:   [[ 90,110, 70,200,400,600,580,450,500,610,600],     [ 60, 70, 50,null,null,null, 60, 32, 30, 28, 28]],
+};
+
+// Rule of 40 history (= revenue growth YoY % + operating margin %)
+// Aligned with STOCK_DATES. null where company was not profitable enough or data unavailable.
+const RULE40_HISTORY = {
+  tsla:  [ 80, 75, 55, 30, 25, 22, 18, 15, 18, 18, 20],
+  nvda:  [ 65, 60, 50, 35,210,180,165,140,120,110,100],
+  googl: [ 65, 50, 30, 25, 30, 36, 42, 48, 50, 55, 58],
+  amd:   [100, 80, 60,  5,  0,  5, 20, 30, 40, 50, 53],
+  aapl:  [ 50, 45, 35, 25, 25, 25, 30, 30, 35, 48, 49],
+  msft:  [ 60, 55, 50, 50, 55, 65, 70, 70, 70, 65, 64],
+  amzn:  [ 50, 30, 10,  8, 18, 25, 28, 30, 30, 30, 30],
+  asml:  [ 75, 80, 60, 70, 75, 75, 50, 30, 30, 45, 60],
+  isrg:  [ 55, 40, 25, 25, 30, 40, 45, 50, 55, 58, 58],
+  pltr:  [ 35, 30, 25, 20, 30, 40, 50, 75,100,120,131],
+  sofi:  [ 80, 60, 40, 20, 30, 40, 45, 50, 55, 60, 58],
+  mtch:  [ 35, 25, 15, 12, 18, 22, 25, 28, 30, 30, 32],
+  path:  [ 80, 40, 10, -5,  5,  8, 10, 12, 14, 16, 17],
+  logn:  [ 80, 40, 10,-10,  0, 15, 18, 20, 22, 22, 22],
+  baba:  [ 50, 35, 20, 10, 15, 20, 22, 22, 25, 28, 21],
+  catl:  [200,180,150,100, 50, 25, 30, 35, 45, 60, 73],
+  xpev:  [180,200,150, 30, 10,  5,-20,-10,  5, 25, 92],
+  joby:  [null,null,null,null,null,null,null,null,null,null,null],
+  sqn:   [ 30, 35, 35, 30, 40, 50, 60, 65, 65, 65, 67],
+  abbn:  [ 30, 30, 25, 22, 28, 32, 36, 40, 42, 40, 25],
+  mc:    [ 60, 70, 50, 35, 30, 25, 22, 22, 18, 18, 20],
+  su:    [ 25, 30, 30, 32, 35, 35, 32, 30, 30, 28, 28],
+  givn:  [ 22, 24, 22, 20, 22, 24, 25, 24, 24, 23, 23],
+  pry:   [ 30, 32, 30, 25, 28, 28, 25, 22, 18, 18, 14],
+  nkt:   [ 25, 28, 22, 30, 50, 55, 30, 25, 22, 18, 15],
+};
+
+// Currency by company id
+const STOCK_CCY = {
+  tsla:'$',nvda:'$',googl:'$',amd:'$',aapl:'$',msft:'$',amzn:'$',asml:'€',isrg:'$',
+  pltr:'$',sofi:'$',mtch:'$',path:'$',logn:'CHF',baba:'$',catl:'¥',xpev:'$',joby:'$',
+  sqn:'CHF',abbn:'CHF',mc:'€',su:'€',givn:'CHF',pry:'€',nkt:'DKK'
+};
+
+// ====================================================================
+// Live weekly prices from Yahoo Finance (browser-side fetch)
+// + embedded quarterly TTM EPS → weekly P/E line at TradingView granularity
+// ====================================================================
+
+// Map TradingView ticker → Yahoo ticker
+function tvToYahoo(tv) {
+  if (!tv) return null;
+  const parts = tv.split(':');
+  if (parts.length !== 2) return tv;
+  const [exch, sym] = parts;
+  const suffix = {
+    NASDAQ: '', NYSE: '', BATS: '',
+    SIX: '.SW',
+    EURONEXT: '.PA',
+    MIL: '.MI',
+    OMXCOP: '.CO',
+    SZSE: '.SZ'
+  }[exch];
+  return suffix !== undefined ? sym + suffix : sym;
+}
+
+// Compute quarterly TTM EPS from embedded price+PE anchors: EPS = price / PE
+function getQuarterlyEPS(cardId) {
+  const h = STOCK_HISTORY[cardId];
+  if (!h) return null;
+  return STOCK_DATES.map((d, i) => {
+    const price = h[0][i], pe = h[1][i];
+    return (price != null && pe != null && pe > 0) ? price / pe : null;
+  });
+}
+
+// EPS at any given date = last known quarterly EPS before that date
+function epsAtDate(cardId, date) {
+  const eps = getQuarterlyEPS(cardId);
+  if (!eps) return null;
+  let last = null;
+  for (let i = 0; i < STOCK_DATES.length; i++) {
+    if (new Date(STOCK_DATES[i]) <= date) {
+      if (eps[i] != null) last = eps[i];
+    } else break;
+  }
+  return last;
+}
+
+// Fetch daily close prices from Yahoo Finance (with CORS-proxy fallback)
+async function fetchDailyPrices(yahooSymbol) {
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+    encodeURIComponent(yahooSymbol) + '?range=5y&interval=1d';
+  const tryParse = (data) => {
+    const result = data && data.chart && data.chart.result && data.chart.result[0];
+    if (!result) return null;
+    const ts = result.timestamp || [];
+    const closes = (result.indicators && result.indicators.quote && result.indicators.quote[0] && result.indicators.quote[0].close) || [];
+    const out = [];
+    for (let i = 0; i < ts.length; i++) {
+      if (closes[i] != null) out.push({ date: new Date(ts[i] * 1000), price: closes[i] });
+    }
+    return out.length ? out : null;
+  };
+  // Direct fetch
+  try {
+    const r = await fetch(url, { mode: 'cors' });
+    if (r.ok) {
+      const d = await r.json();
+      const parsed = tryParse(d);
+      if (parsed) return parsed;
+    }
+  } catch (e) {}
+  // CORS proxy fallback
+  try {
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    const r = await fetch(proxyUrl);
+    if (r.ok) {
+      const d = await r.json();
+      const parsed = tryParse(d);
+      if (parsed) return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Linear interpolation between sparse anchor points → monthly density
+function interpolateMonthly(dates, values) {
+  const outDates = [], outVals = [];
+  for (let i = 0; i < dates.length - 1; i++) {
+    const d0 = new Date(dates[i]), d1 = new Date(dates[i+1]);
+    const v0 = values[i], v1 = values[i+1];
+    const months = Math.max(1, (d1.getFullYear()-d0.getFullYear())*12 + (d1.getMonth()-d0.getMonth()));
+    for (let m = 0; m < months; m++) {
+      const t = m/months;
+      const dt = new Date(d0); dt.setMonth(d0.getMonth()+m);
+      outDates.push(dt.toISOString().slice(0,10));
+      let v;
+      if (v0 == null && v1 == null) v = null;
+      else if (v0 == null) v = (t > 0.5) ? v1 : null;
+      else if (v1 == null) v = (t < 0.5) ? v0 : null;
+      else v = v0 + (v1 - v0) * t;
+      outVals.push(v);
+    }
+  }
+  outDates.push(dates[dates.length-1]);
+  outVals.push(values[values.length-1]);
+  return [outDates, outVals];
+}
+
+function buildRule40Chart(cardId, company) {
+  // Rule of 40 = revenue growth YoY (%) + operating margin (%)
+  // Single Plotly line over 5 years with reference at 40
+  const container = document.getElementById('rule40-'+cardId);
+  if (!container || container.dataset.loaded === '1') return;
+  container.dataset.loaded = '1';
+  const h = RULE40_HISTORY[cardId];
+  if (!h) {
+    container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding-top:60px">Rule of 40 history not available</p>';
+    return;
+  }
+  // Interpolate to monthly for smoother lines (uses existing helper)
+  const [dDates, dR40] = interpolateMonthly(STOCK_DATES, h);
+  // Compute current value (last anchor)
+  const current = h[h.length - 1];
+  const currentColor = (current != null && current >= 40) ? '#16a34a' : '#dc2626';
+
+  const traces = [
+    {
+      // Reference area: 40 threshold band (light green up to 40)
+      x: dDates, y: dDates.map(() => 40),
+      name: '40% threshold',
+      type: 'scatter', mode: 'lines',
+      line: { color: '#16a34a', width: 1, dash: 'dash' },
+      hoverinfo: 'skip',
+      showlegend: false
+    },
+    {
+      x: dDates, y: dR40,
+      name: 'Rule of 40',
+      type: 'scatter', mode: 'lines',
+      line: { color: currentColor, width: 2.5, shape: 'spline' },
+      fill: 'tozeroy',
+      fillcolor: current != null && current >= 40 ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.10)',
+      hovertemplate: 'Rule of 40: <b>%{y:.0f}%</b><br>%{x}<extra></extra>',
+      connectgaps: false
+    }
+  ];
+  const layout = {
+    margin: { l: 48, r: 18, t: 30, b: 28 },
+    xaxis: { type: 'date', tickformat: "%b '%y", showgrid: false, tickfont: {size: 10} },
+    yaxis: {
+      title: { text: 'Rule of 40 (%)', font: { size: 11 }, standoff: 6 },
+      tickfont: { size: 10 },
+      gridcolor: '#eef1f6',
+      zeroline: true,
+      zerolinecolor: '#cbd5e1'
+    },
+    legend: { orientation: 'h', y: 1.10, x: 0.5, xanchor: 'center', font: { size: 10 } },
+    plot_bgcolor: 'white',
+    paper_bgcolor: 'white',
+    hovermode: 'x unified',
+    shapes: [{
+      type: 'line', xref: 'paper', yref: 'y',
+      x0: 0, x1: 1, y0: 40, y1: 40,
+      line: { color: '#16a34a', width: 1.5, dash: 'dot' }
+    }],
+    annotations: [{
+      x: 1, xref: 'paper', y: 40, yref: 'y',
+      xanchor: 'right', yanchor: 'bottom',
+      text: '40% threshold', showarrow: false,
+      font: { color: '#16a34a', size: 9 }
+    }]
+  };
+  Plotly.newPlot(container, traces, layout, { displayModeBar: false, responsive: true });
+}
+
+function buildStockChart(cardId, company) {
+  // Composite: TradingView Symbol Overview (top, live full granularity)
+  // + Plotly weekly P/E strip below (computed from live Yahoo prices ÷ embedded TTM EPS)
+  const container = document.getElementById('stock-'+cardId);
+  if (!container || container.dataset.loaded === '1') return;
+  container.dataset.loaded = '1';
+  container.innerHTML =
+    '<div id="tv-' + cardId + '" style="height:58%;width:100%"></div>' +
+    '<div id="pe-' + cardId + '" style="height:42%;width:100%;border-top:1px dashed #e2e8f0;padding-top:2px"></div>';
+
+  // 1) TradingView Symbol Overview — live price chart, full granularity (weekly)
+  const tvHost = document.getElementById('tv-'+cardId);
+  const widgetDiv = document.createElement('div');
+  widgetDiv.className = 'tradingview-widget-container';
+  widgetDiv.style.height = '100%';
+  widgetDiv.style.width = '100%';
+  widgetDiv.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+  tvHost.appendChild(widgetDiv);
+  const script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    "symbols": [[(company.tvSymbol || '') + "|60M"]],
+    "chartOnly": true,
+    "width": "100%",
+    "height": "100%",
+    "locale": "en",
+    "colorTheme": "light",
+    "autosize": true,
+    "showVolume": false,
+    "showMA": false,
+    "hideDateRanges": false,
+    "hideMarketStatus": false,
+    "hideSymbolLogo": false,
+    "scalePosition": "right",
+    "scaleMode": "Normal",
+    "fontFamily": "Inter, -apple-system, sans-serif",
+    "fontSize": "10",
+    "noTimeScale": false,
+    "valuesTracking": "1",
+    "changeMode": "price-and-percent",
+    "chartType": "area",
+    "lineColor": "#1e40af",
+    "topColor": "rgba(30,64,175,0.20)",
+    "bottomColor": "rgba(30,64,175,0)",
+    "lineWidth": 2,
+    "dateFormat": "MMM 'yy",
+    "dateRanges": ["12m|1D","60m|1W","all|1W"]
+  });
+  widgetDiv.appendChild(script);
+
+  // 2) Live weekly P/E strip — fetch prices then compute PE = price / TTM_EPS
+  const peHost = document.getElementById('pe-'+cardId);
+  peHost.innerHTML = '<p style="color:#94a3b8;text-align:center;font-size:11px;padding-top:30px">Loading weekly P/E...</p>';
+
+  const yahooSymbol = tvToYahoo(company.tvSymbol);
+  fetchDailyPrices(yahooSymbol).then(dailyPrices => {
+    const h = STOCK_HISTORY[cardId];
+    if (!dailyPrices || !h) {
+      // Fallback: render embedded sparse PE
+      peHost.innerHTML = '';
+      const peTrace = [{
+        x: STOCK_DATES, y: h ? h[1] : [],
+        name: 'P/E TTM (sparse)',
+        type: 'scatter', mode: 'lines+markers',
+        line: { color: '#d97706', width: 2, shape: 'spline' },
+        fill: 'tozeroy', fillcolor: 'rgba(217,119,6,0.10)',
+        connectgaps: false,
+        hovertemplate: 'P/E TTM: <b>%{y:.0f}</b><extra></extra>'
+      }];
+      Plotly.newPlot(peHost, peTrace, peLayoutBase(company), { displayModeBar: false, responsive: true });
+      return;
+    }
+    // Compute daily PE from live price + quarterly EPS step function
+    const dates = dailyPrices.map(p => p.date.toISOString().slice(0,10));
+    const pes = dailyPrices.map(({date, price}) => {
+      const eps = epsAtDate(cardId, date);
+      return (eps != null && eps > 0) ? price / eps : null;
+    });
+    console.log('[PE] '+cardId+': '+dailyPrices.length+' daily price points, '+pes.filter(x=>x!=null).length+' valid PE points');
+    peHost.innerHTML = '';
+    const trace = [{
+      x: dates, y: pes,
+      name: 'P/E TTM (live, daily)',
+      type: 'scatter', mode: 'lines',
+      line: { color: '#d97706', width: 2, simplify: false },
+      fill: 'tozeroy', fillcolor: 'rgba(217,119,6,0.12)',
+      hovertemplate: 'P/E TTM: <b>%{y:.1f}</b><br>%{x}<extra></extra>',
+      connectgaps: false
+    }];
+    Plotly.newPlot(peHost, trace, peLayoutBase(company), { displayModeBar: false, responsive: true });
+  });
+}
+
+// Parse date strings like "Apr 22, 2026" or "May 15, 2026 (est.)" → Date or null
+function parseReleaseDate(str) {
+  if (!str) return null;
+  const m = str.match(/([A-Za-z]+\s+\d+,?\s*\d{4})/);
+  if (!m) return null;
+  const d = new Date(m[1]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Build vertical earnings-date markers (historical + upcoming) for the P/E strip
+function getReleaseShapes(company) {
+  const shapes = [];
+  const lastRelease = parseReleaseDate(company.released);
+  if (!lastRelease) return shapes;
+  // Detect cadence: semi-annual if nextRelease label contains "(H"
+  const isSemiAnnual = company.nextRelease && /\(H/.test(company.nextRelease);
+  const stepDays = isSemiAnnual ? 182 : 91;
+  const minDate = new Date('2021-04-01');
+
+  // Historical reports (gray dotted bars)
+  let cur = new Date(lastRelease);
+  let safety = 24;
+  while (cur >= minDate && safety-- > 0) {
+    const isLatest = cur.getTime() === lastRelease.getTime();
+    shapes.push({
+      type: 'line', xref: 'x', yref: 'paper',
+      x0: cur.toISOString().slice(0,10), x1: cur.toISOString().slice(0,10),
+      y0: 0, y1: 1,
+      line: {
+        color: isLatest ? '#16a34a' : '#64748b',
+        width: isLatest ? 2 : 1.2,
+        dash: isLatest ? 'solid' : 'dot'
+      },
+      opacity: isLatest ? 1 : 0.7,
+      layer: 'above'
+    });
+    cur = new Date(cur.getTime() - stepDays * 86400000);
+  }
+
+  // Next release (orange dashed bar)
+  const nextDate = parseReleaseDate(company.nextRelease);
+  if (nextDate) {
+    shapes.push({
+      type: 'line', xref: 'x', yref: 'paper',
+      x0: nextDate.toISOString().slice(0,10), x1: nextDate.toISOString().slice(0,10),
+      y0: 0, y1: 1,
+      line: { color: '#d97706', width: 2, dash: 'dash' },
+      opacity: 1,
+      layer: 'above'
+    });
+  }
+  return shapes;
+}
+
+// Build small annotations: tiny labels just over the latest report and next release
+function getReleaseAnnotations(company) {
+  const ann = [];
+  const lastRelease = parseReleaseDate(company.released);
+  if (lastRelease) {
+    ann.push({
+      x: lastRelease.toISOString().slice(0,10),
+      y: 1, xref: 'x', yref: 'paper',
+      text: '📅', showarrow: false,
+      font: { size: 10 },
+      yshift: 6
+    });
+  }
+  const nextDate = parseReleaseDate(company.nextRelease);
+  if (nextDate) {
+    ann.push({
+      x: nextDate.toISOString().slice(0,10),
+      y: 1, xref: 'x', yref: 'paper',
+      text: '⏭', showarrow: false,
+      font: { size: 10, color: '#d97706' },
+      yshift: 6
+    });
+  }
+  return ann;
+}
+
+// Shared layout for the P/E strip
+function peLayoutBase(company) {
+  // Earnings-release vertical bars + horizontal P/E threshold at 30
+  const releaseShapes = company ? getReleaseShapes(company) : [];
+  const thresholdShape = {
+    type: 'line', xref: 'paper', yref: 'y',
+    x0: 0, x1: 1, y0: 30, y1: 30,
+    line: { color: '#0891b2', width: 1.4, dash: 'dash' },
+    layer: 'above'
+  };
+  const releaseAnn = company ? getReleaseAnnotations(company) : [];
+  const thresholdAnn = {
+    x: 0, xref: 'paper', y: 30, yref: 'y',
+    xanchor: 'left', yanchor: 'bottom',
+    text: 'P/E 30',
+    showarrow: false,
+    font: { color: '#0891b2', size: 9 },
+    bgcolor: 'rgba(255,255,255,0.7)',
+    borderpad: 1
+  };
+  return {
+    margin: { l: 38, r: 14, t: 16, b: 22 },
+    xaxis: {
+      type: 'date',
+      tickformat: "%b '%y",
+      showgrid: true,
+      gridcolor: '#f1f5f9',
+      tickfont: {size: 9, color: '#94a3b8'},
+      nticks: 8
+    },
+    yaxis: {
+      title: { text: 'P/E TTM', font: { color: '#d97706', size: 10 }, standoff: 4 },
+      tickfont: { color: '#d97706', size: 10 },
+      gridcolor: '#fef3c7',
+      zeroline: false
+    },
+    showlegend: false,
+    plot_bgcolor: 'white',
+    paper_bgcolor: 'white',
+    hovermode: 'x',
+    shapes: [thresholdShape].concat(releaseShapes),
+    annotations: [thresholdAnn].concat(releaseAnn)
+  };
+}
+
+function setCardView(cardId, view) {
+  const sankey = document.getElementById('chart-'+cardId);
+  const stock  = document.getElementById('stock-'+cardId);
+  const rule40 = document.getElementById('rule40-'+cardId);
+  const btn    = document.querySelector('.card-toggle[data-card-id="'+cardId+'"]');
+  if (!sankey || !stock || !rule40) return;
+  const company = COMPANIES.find(c => c.id === cardId);
+  // Hide all first
+  sankey.style.display = 'none';
+  stock.style.display = 'none';
+  rule40.style.display = 'none';
+  if (view === 'stock') {
+    stock.style.display = 'block';
+    if (company) {
+      buildStockChart(cardId, company);
+      setTimeout(() => {
+        const peDiv = document.getElementById('pe-'+cardId);
+        if (peDiv) try { Plotly.Plots.resize(peDiv); } catch(e){}
+      }, 80);
+    }
+    if (btn) { btn.classList.add('active'); btn.textContent = '🎯 → Rule of 40'; btn.title = 'Click to view Rule of 40 (5y)'; }
+  } else if (view === 'rule40') {
+    rule40.style.display = 'block';
+    if (company) {
+      buildRule40Chart(cardId, company);
+      setTimeout(() => { try { Plotly.Plots.resize(rule40); } catch(e){} }, 80);
+    }
+    if (btn) { btn.classList.add('active'); btn.textContent = '↩ Back to Sankey'; btn.title = 'Click to return to the income statement'; }
+  } else {
+    sankey.style.display = '';
+    if (btn) { btn.classList.remove('active'); btn.textContent = '📈 Stock chart'; btn.title = 'Click to view 5-year stock chart'; }
+  }
+  cardState[cardId] = view;
+}
+
+// Per-card toggle: cycles sankey → stock → rule40 → sankey
+document.querySelectorAll('.card-toggle').forEach(btn => {
+  btn.addEventListener('click', e => {
+    const id = btn.dataset.cardId;
+    const cur = cardState[id] || 'sankey';
+    const next = cur === 'sankey' ? 'stock' : cur === 'stock' ? 'rule40' : 'sankey';
+    setCardView(id, next);
+    syncGlobalButtons();
+  });
+});
+
+// Global toggles
+function setAllCards(view) {
+  COMPANIES.forEach(c => setCardView(c.id, view));
+  syncGlobalButtons();
+}
+function syncGlobalButtons() {
+  const allSankey = COMPANIES.every(c => cardState[c.id] === 'sankey');
+  const allStock = COMPANIES.every(c => cardState[c.id] === 'stock');
+  const allRule40 = COMPANIES.every(c => cardState[c.id] === 'rule40');
+  document.getElementById('btn-view-sankey').classList.toggle('active', allSankey);
+  document.getElementById('btn-view-stock').classList.toggle('active', allStock);
+  document.getElementById('btn-view-rule40').classList.toggle('active', allRule40);
+}
+document.getElementById('btn-view-sankey').addEventListener('click', () => setAllCards('sankey'));
+document.getElementById('btn-view-stock').addEventListener('click', () => setAllCards('stock'));
+document.getElementById('btn-view-rule40').addEventListener('click', () => setAllCards('rule40'));
+
+// Refresh: reload the page (re-fetches Plotly CDN, TradingView widgets, etc.)
+document.getElementById('btn-refresh').addEventListener('click', () => {
+  // Add a tiny visual feedback before reload
+  const btn = document.getElementById('btn-refresh');
+  btn.textContent = '⏳ Refreshing…';
+  btn.disabled = true;
+  setTimeout(() => window.location.reload(), 100);
+});
+
+// ====================================================================
+// Dark / light theme toggle
+// ====================================================================
+let IS_DARK = false;
+
+function relabelSankey(el, company) {
+  // Rebuild Sankey labels with theme-aware text color so node names + values
+  // stay readable in dark mode (percent labels already use semantic colors).
+  if (!el || !company) return;
+  const labels = company.nodes.map(n => lbl(n, company.currency, company.unit));
+  try {
+    Plotly.restyle(el, {
+      'node.label': [labels],
+      'textfont.color': IS_DARK ? '#f1f5f9' : '#0a2540'
+    });
+  } catch(e){}
+}
+
+function applyTheme(isDark) {
+  IS_DARK = isDark;
+  document.body.classList.toggle('dark', isDark);
+  document.getElementById('btn-theme').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+  const paper = isDark ? '#1e293b' : 'white';
+  const fontC = isDark ? '#f1f5f9' : '#0a2540';
+  const gridC = isDark ? '#334155' : '#eef1f6';
+  const peGridC = isDark ? '#451a03' : '#fef3c7';
+
+  document.querySelectorAll('.grid > .card').forEach(card => {
+    const id = card.dataset.id;
+    const company = COMPANIES.find(c => c.id === id);
+    const sEl = document.getElementById('chart-'+id);
+    if (sEl && sEl._fullLayout) {
+      try { Plotly.relayout(sEl, { 'paper_bgcolor': paper, 'plot_bgcolor': paper, 'font.color': fontC }); } catch(e){}
+      relabelSankey(sEl, company);
+    }
+    const peEl = document.getElementById('pe-'+id);
+    if (peEl && peEl._fullLayout) {
+      try { Plotly.relayout(peEl, { 'paper_bgcolor': paper, 'plot_bgcolor': paper, 'font.color': fontC, 'xaxis.gridcolor': gridC, 'xaxis.tickfont.color': isDark ? '#cbd5e1' : '#94a3b8', 'yaxis.gridcolor': peGridC }); } catch(e){}
+    }
+    const r40El = document.getElementById('rule40-'+id);
+    if (r40El && r40El._fullLayout) {
+      try { Plotly.relayout(r40El, { 'paper_bgcolor': paper, 'plot_bgcolor': paper, 'font.color': fontC, 'xaxis.gridcolor': gridC, 'yaxis.gridcolor': gridC }); } catch(e){}
+    }
+  });
+  localStorage.setItem('dash.theme', isDark ? 'dark' : 'light');
+}
+document.getElementById('btn-theme').addEventListener('click', () => { applyTheme(!IS_DARK); });
+if (localStorage.getItem('dash.theme') === 'dark') applyTheme(true);
+
+// ====================================================================
+// Layout controls: height + cols + sort
+// ====================================================================
+const HEIGHT_OPTIONS = [280, 340, 420, 500, 600, 720];
+const COLS_MIN = 1, COLS_MAX = 5;
+
+function parseCcyRate(s) {
+  if (!s) return 1;
+  if (s.includes('$')) return 1;
+  if (s.includes('€')) return 1.08;
+  if (s.includes('CHF')) return 1.12;
+  if (s.includes('DKK')) return 0.14;
+  if (s.includes('¥')) return 0.14;
+  return 1;
+}
+function parseMcap(s) {
+  if (!s) return -1;
+  const m = s.match(/([\d.]+)\s*([TBM])/i);
+  if (!m) return -1;
+  let n = parseFloat(m[1]);
+  const u = m[2].toUpperCase();
+  if (u === 'T') n *= 1e12;
+  else if (u === 'B') n *= 1e9;
+  else if (u === 'M') n *= 1e6;
+  return n * parseCcyRate(s);
+}
+function getNetPct(c) {
+  const np = c.nodes.find(n => /^Net profit$/i.test(n.name));
+  if (np && np.pct != null) return np.pct;
+  const nl = c.nodes.find(n => /net loss/i.test(n.name) || /cash burn/i.test(n.name));
+  if (nl && nl.pct != null) return -Math.abs(nl.pct);
+  return -999;
+}
+function getGrossPct(c) {
+  const g = c.nodes.find(n => /^Gross (profit|margin)/i.test(n.name));
+  if (g && g.pct != null) return g.pct;
+  return -999;
+}
+function getRevUsd(c) { return (c.rev || 0) * parseCcyRate(c.currency); }
+function getPENum(c) {
+  if (!c.pe || /n\/?m/i.test(c.pe)) return -1;
+  const n = parseFloat(c.pe);
+  return isNaN(n) ? -1 : n;
+}
+function getRule40(c) {
+  const h = RULE40_HISTORY[c.id];
+  if (!h) return null;
+  const v = h[h.length - 1];
+  return (v != null) ? v : null;
+}
+
+const SORT_FNS = {
+  default: (c, i) => i,
+  release: c => { const d = parseReleaseDate(c.released); return d ? -d.getTime() : Number.POSITIVE_INFINITY; },
+  pe:    c => -getPENum(c),
+  net:   c => -getNetPct(c),
+  gross: c => -getGrossPct(c),
+  rev:   c => -getRevUsd(c),
+  mcap:  c => -parseMcap(c.mcap),
+  r40:   c => { const v = getRule40(c); return v != null ? -v : Number.POSITIVE_INFINITY; }
+};
+
+const layoutState = {
+  heightIdx: parseInt(localStorage.getItem('dash.heightIdx') || '2', 10),
+  cols: parseInt(localStorage.getItem('dash.cols') || '2', 10),
+  sort: localStorage.getItem('dash.sort') || 'default'
+};
+
+function applySort() {
+  const grid = document.getElementById('grid');
+  const cards = Array.from(grid.querySelectorAll(':scope > .card'));
+  const cardById = {};
+  cards.forEach(c => { cardById[c.dataset.id] = c; });
+  const indexed = COMPANIES.map((c, i) => ({ c, i }));
+  const fn = SORT_FNS[layoutState.sort] || SORT_FNS.default;
+  indexed.sort((a, b) => { const va = fn(a.c, a.i), vb = fn(b.c, b.i); return va - vb; });
+  indexed.forEach(({ c }) => { if (cardById[c.id]) grid.appendChild(cardById[c.id]); });
+}
+
+function applyLayout() {
+  const h = HEIGHT_OPTIONS[layoutState.heightIdx];
+  document.documentElement.style.setProperty('--chart-height', h + 'px');
+  document.documentElement.style.setProperty('--cols', layoutState.cols);
+  applySort();
+  document.getElementById('val-height').textContent = h;
+  document.getElementById('val-cols').textContent = layoutState.cols;
+  document.getElementById('sort-select').value = layoutState.sort;
+  document.getElementById('btn-height-dec').disabled = layoutState.heightIdx <= 0;
+  document.getElementById('btn-height-inc').disabled = layoutState.heightIdx >= HEIGHT_OPTIONS.length - 1;
+  document.getElementById('btn-cols-dec').disabled = layoutState.cols <= COLS_MIN;
+  document.getElementById('btn-cols-inc').disabled = layoutState.cols >= COLS_MAX;
+  localStorage.setItem('dash.heightIdx', layoutState.heightIdx);
+  localStorage.setItem('dash.cols', layoutState.cols);
+  localStorage.setItem('dash.sort', layoutState.sort);
+  setTimeout(() => {
+    document.querySelectorAll('.grid > .card').forEach(card => {
+      const id = card.dataset.id;
+      const el = document.getElementById('chart-'+id);
+      if (el) try { Plotly.Plots.resize(el); } catch(e){}
+      const peDiv = document.getElementById('pe-'+id);
+      if (peDiv) try { Plotly.Plots.resize(peDiv); } catch(e){}
+      const r40 = document.getElementById('rule40-'+id);
+      if (r40) try { Plotly.Plots.resize(r40); } catch(e){}
+    });
+  }, 80);
+}
+
+document.getElementById('btn-height-dec').addEventListener('click', () => { if (layoutState.heightIdx > 0) { layoutState.heightIdx--; applyLayout(); } });
+document.getElementById('btn-height-inc').addEventListener('click', () => { if (layoutState.heightIdx < HEIGHT_OPTIONS.length - 1) { layoutState.heightIdx++; applyLayout(); } });
+document.getElementById('btn-cols-dec').addEventListener('click', () => { if (layoutState.cols > COLS_MIN) { layoutState.cols--; applyLayout(); } });
+document.getElementById('btn-cols-inc').addEventListener('click', () => { if (layoutState.cols < COLS_MAX) { layoutState.cols++; applyLayout(); } });
+document.getElementById('sort-select').addEventListener('change', (e) => { layoutState.sort = e.target.value; applyLayout(); });
+
+applyLayout();
+
+// Resize handler
+window.addEventListener('resize', () => {
+  COMPANIES.forEach(c => {
+    const el = document.getElementById('chart-'+c.id);
+    if (el) try { Plotly.Plots.resize(el); } catch(e){}
+    const peDiv = document.getElementById('pe-'+c.id);
+    if (peDiv) try { Plotly.Plots.resize(peDiv); } catch(e){}
+    const r40 = document.getElementById('rule40-'+c.id);
+    if (r40) try { Plotly.Plots.resize(r40); } catch(e){}
+  });
+});
+</script>
+</body>
+</html>
