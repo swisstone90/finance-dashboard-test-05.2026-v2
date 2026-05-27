@@ -149,6 +149,18 @@
   body.dark .r40-pill.r40-good { background: #14532d; color: #bbf7d0; }
   body.dark .r40-pill.r40-bad  { background: #7f1d1d; color: #fecaca; }
   body.dark .r40-pill.r40-na   { background: #334155; color: #cbd5e1; }
+  .r40pe-pill {
+    background: #facc15;
+    color: #713f12;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    margin-left: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+  body.dark .r40pe-pill { background: #ca8a04; color: #fef9c3; }
   .pill-row { display: flex; gap: 4px; flex-wrap: wrap; }
   .card-toggle {
     background: #f1f5f9;
@@ -296,6 +308,35 @@
     margin-top: 4px;
     font-style: italic;
   }
+  .add-stock-btn { color: #16a34a; font-weight: 700; }
+  .add-stock-btn:hover { background: #dcfce7; border-color: #16a34a; }
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg-card); color: var(--text-primary);
+    border-radius: 12px; padding: 24px; width: 90%; max-width: 420px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  }
+  .modal h3 { margin: 0 0 16px 0; font-size: 18px; }
+  .modal label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin: 10px 0 4px; }
+  .modal input {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px; background: var(--bg-page); color: var(--text-primary);
+  }
+  .modal-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+  .modal-btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); }
+  .modal-btn.primary { background: #16a34a; color: white; border-color: #16a34a; }
+  .modal-btn.cancel { background: var(--bg-card-2); color: var(--text-primary); }
+  .custom-badge { font-size: 9px; background: #16a34a; color: white; padding: 1px 5px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+  .card-delete { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 16px; padding: 0 4px; }
+  .no-data-msg { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
   .global-footer {
     text-align: center;
     color: var(--text-secondary);
@@ -319,6 +360,7 @@
   <button class="global-toggle" id="btn-view-rule40">Rule of 40 (5y)</button>
   <button class="global-toggle refresh-btn" id="btn-refresh" title="Reload page & refresh stock prices">🔄 Refresh</button>
   <button class="global-toggle theme-btn" id="btn-theme" title="Toggle dark / light mode">🌙 Dark</button>
+  <button class="global-toggle add-stock-btn" id="btn-add-stock" title="Ajouter une action manuellement">➕ Action</button>
   <div class="layout-control" title="Chart height (Sankey + stock charts)">
     <span class="layout-label">📏 Height</span>
     <button class="layout-btn" id="btn-height-dec">−</button>
@@ -342,11 +384,33 @@
       <option value="rev">Revenue ↓ (USD)</option>
       <option value="mcap">Market cap ↓ (USD)</option>
       <option value="r40">Rule of 40 ↓</option>
+      <option value="r40pe">R40 / P/E ↓</option>
     </select>
   </div>
 </div>
 
 <div class="grid" id="grid"></div>
+
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h3>➕ Ajouter une action</h3>
+    <label>Nom de la société *</label>
+    <input id="add-name" placeholder="ex: Meta Platforms" />
+    <label>Ticker TradingView *</label>
+    <input id="add-ticker" placeholder="ex: NASDAQ:META" />
+    <div class="modal-hint">Format EXCHANGE:TICKER — NASDAQ, NYSE, SIX, EURONEXT, MIL, OMXCOP, SZSE…</div>
+    <label>P/E ratio (optionnel)</label>
+    <input id="add-pe" placeholder="ex: 28" type="number" step="0.1" />
+    <label>Rule of 40 (optionnel)</label>
+    <input id="add-r40" placeholder="ex: 55" type="number" step="1" />
+    <label>Market cap (optionnel)</label>
+    <input id="add-mcap" placeholder="ex: $1.5T ou CHF 10B" />
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="add-cancel">Annuler</button>
+      <button class="modal-btn primary" id="add-confirm">Ajouter</button>
+    </div>
+  </div>
+</div>
 
 <div class="global-footer">
   Style inspired by App Economy Insights · Data sources: company earnings releases · Some operating-expense splits are estimated where line-item disclosure is limited.
@@ -392,6 +456,11 @@ function lbl(node, currency, unit) {
 }
 
 function buildSankey(divId, cfg) {
+  if (cfg.custom || !cfg.nodes || !cfg.nodes.length) {
+    const el = document.getElementById(divId);
+    if (el) el.innerHTML = '<div class="no-data-msg">Action ajout\u00e9e manuellement \u2014 pas de compte de r\u00e9sultat.<br>Utilise le bouton \ud83d\udcc8 Stock chart pour voir le cours et le P/E.</div>';
+    return;
+  }
   const labels = cfg.nodes.map(n => lbl(n, cfg.currency, cfg.unit));
   const node_color = cfg.nodes.map(n => {
     switch (n.kind) {
@@ -1307,6 +1376,72 @@ const COMPANIES = [
       {s:7,t:10,v:0.13,kind:'opex'},{s:7,t:11,v:0.24,kind:'opex'},{s:7,t:12,v:0.05,kind:'opex'},
     ],
   },
+
+  // -------------------- 26. Belimo FY 2025 --------------------
+  {
+    id: 'bean', title: 'Belimo (BEAN)', period: 'FY 2025 \u00b7 CHF',
+    currency: 'CHF ', unit: 'B', rev: 1.121, mcap: 'CHF 10B', tvSymbol: 'SIX:BEAN', pe: '58', released: 'Mar 3, 2026', nextRelease: 'Aug 11, 2026 (H1)',
+    stats: [
+      ['Revenue', 'CHF 1.12B', '+23% Y/Y', 'pos'],
+      ['EBIT margin', '20.8%', '+1.6pp', 'pos'],
+      ['EBIT', 'CHF 0.23B', '+29% Y/Y', 'pos'],
+      ['Net income', 'CHF 0.18B', '+24% Y/Y', 'pos'],
+    ],
+    nodes: [
+      {name:'Americas', value:0.504, pct:45.0, yoy:28, kind:'rev_seg', x:0.01, y:0.18},
+      {name:'EMEA', value:0.449, pct:40.0, kind:'rev_seg', x:0.01, y:0.50},
+      {name:'Asia Pacific', value:0.168, pct:15.0, kind:'rev_seg', x:0.01, y:0.80},
+      {name:'Revenue', value:1.121, pct:100, yoy:23, kind:'rev', x:0.27, y:0.50},
+      {name:'Gross profit', value:0.504, pct:45.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of goods', value:0.617, pct:55.0, kind:'cost', x:0.50, y:0.82},
+      {name:'EBIT', value:0.233, pct:20.8, yoy:29, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:0.271, pct:24.2, kind:'opex', x:0.72, y:0.60},
+      {name:'Net profit', value:0.182, pct:16.2, yoy:24, kind:'profit', x:0.99, y:0.12},
+      {name:'Tax & other', value:0.051, pct:4.5, kind:'tax', x:0.99, y:0.30},
+      {name:'R&D', value:0.078, pct:7.0, kind:'opex', x:0.99, y:0.50},
+      {name:'Sales & Mktg', value:0.135, pct:12.0, kind:'opex', x:0.99, y:0.72},
+      {name:'G&A', value:0.058, pct:5.2, kind:'opex', x:0.99, y:0.92},
+    ],
+    links: [
+      {s:0,t:3,v:0.504,kind:'rev'},{s:1,t:3,v:0.449,kind:'rev'},{s:2,t:3,v:0.168,kind:'rev'},
+      {s:3,t:4,v:0.504,kind:'profit'},{s:3,t:5,v:0.617,kind:'cost'},
+      {s:4,t:6,v:0.233,kind:'profit'},{s:4,t:7,v:0.271,kind:'cost'},
+      {s:6,t:8,v:0.182,kind:'profit'},{s:6,t:9,v:0.051,kind:'tax'},
+      {s:7,t:10,v:0.078,kind:'opex'},{s:7,t:11,v:0.135,kind:'opex'},{s:7,t:12,v:0.058,kind:'opex'},
+    ],
+  },
+
+  // -------------------- 27. Quanta Services Q1 2026 --------------------
+  {
+    id: 'pwr', title: 'Quanta Services (PWR)', period: 'Q1 2026 \u00b7 USD',
+    currency: '$', unit: 'B', rev: 7.87, mcap: '$109B', tvSymbol: 'NYSE:PWR', pe: '107', released: 'May 1, 2026', nextRelease: 'Jul 30, 2026 (Q2)',
+    stats: [
+      ['Revenue', '$7.87B', '+27% Y/Y', 'pos'],
+      ['Op margin', '4.3%', 'GAAP', 'pos'],
+      ['Op income', '$0.34B', '', 'pos'],
+      ['Net income', '$0.22B', '', 'pos'],
+    ],
+    nodes: [
+      {name:'Electric', value:6.5, pct:82.6, yoy:24, kind:'rev_seg', x:0.01, y:0.30},
+      {name:'Underground & Infra', value:1.37, pct:17.4, yoy:35, kind:'rev_seg', x:0.01, y:0.70},
+      {name:'Revenue', value:7.87, pct:100, yoy:27, kind:'rev', x:0.27, y:0.50},
+      {name:'Gross profit', value:1.18, pct:15.0, kind:'profit', x:0.50, y:0.30},
+      {name:'Cost of revenue', value:6.69, pct:85.0, kind:'cost', x:0.50, y:0.82},
+      {name:'Operating income', value:0.339, pct:4.3, kind:'profit', x:0.72, y:0.20},
+      {name:'Operating expenses', value:0.841, pct:10.7, kind:'opex', x:0.72, y:0.60},
+      {name:'Net profit', value:0.221, pct:2.8, kind:'profit', x:0.99, y:0.12},
+      {name:'Tax & other', value:0.118, pct:1.5, kind:'tax', x:0.99, y:0.32},
+      {name:'SG&A', value:0.70, pct:8.9, kind:'opex', x:0.99, y:0.55},
+      {name:'Amortization', value:0.141, pct:1.8, kind:'opex', x:0.99, y:0.82},
+    ],
+    links: [
+      {s:0,t:2,v:6.5,kind:'rev'},{s:1,t:2,v:1.37,kind:'rev'},
+      {s:2,t:3,v:1.18,kind:'profit'},{s:2,t:4,v:6.69,kind:'cost'},
+      {s:3,t:5,v:0.339,kind:'profit'},{s:3,t:6,v:0.841,kind:'cost'},
+      {s:5,t:7,v:0.221,kind:'profit'},{s:5,t:8,v:0.118,kind:'tax'},
+      {s:6,t:9,v:0.70,kind:'opex'},{s:6,t:10,v:0.141,kind:'opex'},
+    ],
+  },
 ];
 
 // ====================================================================
@@ -1351,6 +1486,8 @@ const STOCK_HISTORY = {
   givn:  [[3700,4100,3000,3000,3300,3700,4000,3850,4100,3850,2800],[ 35, 40, 32, 30, 30, 32, 30, 28, 30, 33, 35]],
   pry:   [[ 30, 36, 24, 35, 45, 41, 60, 64, 50, 55, 92],     [ 20, 22, 18, 22, 24, 22, 22, 20, 25, 30, 35]],
   nkt:   [[ 90,110, 70,200,400,600,580,450,500,610,600],     [ 60, 70, 50,null,null,null, 60, 32, 30, 28, 28]],
+  bean:  [[430,470,360,380,440,470,560,620,750,900,1620],    [ 35, 38, 30, 28, 38, 40, 48, 42, 48, 54, 58]],
+  pwr:   [[110,115,130,140,165,190,250,310,290,340,730],     [ 38, 40, 42, 45, 50, 55, 60, 55, 48, 52,107]],
 };
 
 // Rule of 40 history (= revenue growth YoY % + operating margin %)
@@ -1381,15 +1518,31 @@ const RULE40_HISTORY = {
   givn:  [ 22, 24, 22, 20, 22, 24, 25, 24, 24, 23, 23],
   pry:   [ 30, 32, 30, 25, 28, 28, 25, 22, 18, 18, 14],
   nkt:   [ 25, 28, 22, 30, 50, 55, 30, 25, 22, 18, 15],
+  bean:  [ 30, 32, 28, 26, 30, 32, 38, 35, 40, 42, 44],
+  pwr:   [ 25, 28, 30, 30, 28, 30, 32, 33, 28, 28, 29],
 };
 
 // Currency by company id
 const STOCK_CCY = {
   tsla:'$',nvda:'$',googl:'$',amd:'$',aapl:'$',msft:'$',amzn:'$',asml:'€',isrg:'$',
   pltr:'$',sofi:'$',mtch:'$',path:'$',logn:'CHF',baba:'$',catl:'¥',xpev:'$',joby:'$',
-  sqn:'CHF',abbn:'CHF',mc:'€',su:'€',givn:'CHF',pry:'€',nkt:'DKK'
+  sqn:'CHF',abbn:'CHF',mc:'€',su:'€',givn:'CHF',pry:'€',nkt:'DKK',
+  bean:'CHF',pwr:'$'
 };
 
+
+// Load user-added custom stocks from localStorage and merge into COMPANIES
+let CUSTOM_STOCKS = [];
+try { CUSTOM_STOCKS = JSON.parse(localStorage.getItem('dash.customStocks') || '[]'); } catch(e){ CUSTOM_STOCKS = []; }
+CUSTOM_STOCKS.forEach(s => {
+  COMPANIES.push({
+    id: s.id, title: s.title, period: 'Action ajout\u00e9e',
+    currency: s.currency || '$', unit: 'B', rev: 0,
+    mcap: s.mcap || '', tvSymbol: s.tvSymbol, pe: s.pe || '',
+    custom: true, r40val: (s.r40 != null && s.r40 !== '') ? Number(s.r40) : null,
+    nodes: [], links: [], stats: []
+  });
+});
 
 COMPANIES.forEach(c => {
   const card = document.createElement('div');
@@ -1401,7 +1554,7 @@ COMPANIES.forEach(c => {
   const peHtml = c.pe ? '<span class="pe-pill" title="P/E ratio (TTM)">P/E '+c.pe+'</span>' : '';
   // Rule of 40 chip: read current value from RULE40_HISTORY (last anchor)
   const r40Hist = (typeof RULE40_HISTORY !== 'undefined') ? RULE40_HISTORY[c.id] : null;
-  const r40Val = r40Hist ? r40Hist[r40Hist.length - 1] : null;
+  const r40Val = c.custom ? c.r40val : (r40Hist ? r40Hist[r40Hist.length - 1] : null);
   let r40Html = '';
   if (r40Val != null) {
     const cls = r40Val >= 40 ? 'r40-good' : 'r40-bad';
@@ -1409,13 +1562,22 @@ COMPANIES.forEach(c => {
   } else {
     r40Html = '<span class="r40-pill r40-na" title="Rule of 40 not applicable">R40 n/m</span>';
   }
-  const pillsHtml = '<div class="pill-row">'+mcapHtml+peHtml+r40Html+'</div>';
+  // Rule 40 / PE ratio chip (yellow bubble) — higher = more growth+quality per unit of valuation
+  const peNum = (c.pe && !/n\/?m/i.test(c.pe)) ? parseFloat(c.pe) : null;
+  let r40peHtml = '';
+  if (r40Val != null && peNum != null && peNum > 0) {
+    const ratio = (r40Val / peNum).toFixed(2);
+    r40peHtml = '<span class="r40pe-pill" title="Rule of 40 \u00f7 P/E (TTM) \u2014 higher = better quality per unit of valuation">R40/PE '+ratio+'</span>';
+  } else {
+    r40peHtml = '<span class="r40pe-pill" title="Rule of 40 \u00f7 P/E">R40/PE n/m</span>';
+  }
+  const pillsHtml = '<div class="pill-row">'+mcapHtml+peHtml+r40Html+r40peHtml+'</div>';
   const released = c.released ? '<span class="card-released" title="When these results were published">📅 Reported '+c.released+'</span>' : '';
   const nextRel = c.nextRelease ? '<span class="card-released" title="Next earnings release expected">⏭ Next: '+c.nextRelease+'</span>' : '';
   card.innerHTML =
     '<div class="card-header">' +
       '<div>' +
-        '<h2 class="card-title">'+c.title+'</h2>' +
+        '<h2 class="card-title">'+c.title+(c.custom?'<span class="custom-badge">CUSTOM</span>':'')+'</h2>' +
         '<div class="card-period">'+c.period+'</div>' +
       '</div>' +
       '<div class="header-right">' +
@@ -1425,6 +1587,7 @@ COMPANIES.forEach(c => {
           nextRel +
         '</div>' +
         '<button class="card-toggle" data-card-id="'+c.id+'" title="Cycle views: Sankey → Stock → Rule of 40">📈 Stock chart</button>' +
+        (c.custom ? '<button class="card-delete" data-del-id="'+c.id+'" title="Supprimer cette action">\u2715</button>' : '') +
       '</div>' +
     '</div>' +
     '<div class="stats">'+stats+'</div>' +
@@ -1435,6 +1598,7 @@ COMPANIES.forEach(c => {
   grid.appendChild(card);
   buildSankey('chart-'+c.id, c);
   cardState[c.id] = 'sankey';
+  if (c.custom) { setTimeout(() => setCardView(c.id, 'stock'), 100); }
 });
 
 // ====================================================================
@@ -1986,6 +2150,7 @@ function getPENum(c) {
   return isNaN(n) ? -1 : n;
 }
 function getRule40(c) {
+  if (c.custom) return (c.r40val != null) ? c.r40val : null;
   const h = RULE40_HISTORY[c.id];
   if (!h) return null;
   const v = h[h.length - 1];
@@ -2000,7 +2165,8 @@ const SORT_FNS = {
   gross: c => -getGrossPct(c),
   rev:   c => -getRevUsd(c),
   mcap:  c => -parseMcap(c.mcap),
-  r40:   c => { const v = getRule40(c); return v != null ? -v : Number.POSITIVE_INFINITY; }
+  r40:   c => { const v = getRule40(c); return v != null ? -v : Number.POSITIVE_INFINITY; },
+  r40pe: c => { const v = getRule40(c), pe = getPENum(c); return (v != null && pe > 0) ? -(v / pe) : Number.POSITIVE_INFINITY; }
 };
 
 const layoutState = {
@@ -2054,6 +2220,58 @@ document.getElementById('btn-cols-dec').addEventListener('click', () => { if (la
 document.getElementById('btn-cols-inc').addEventListener('click', () => { if (layoutState.cols < COLS_MAX) { layoutState.cols++; applyLayout(); } });
 document.getElementById('sort-select').addEventListener('change', (e) => { layoutState.sort = e.target.value; applyLayout(); });
 
+
+// ====================================================================
+// Add custom stock modal
+// ====================================================================
+const addModal = document.getElementById('add-modal');
+document.getElementById('btn-add-stock').addEventListener('click', () => addModal.classList.add('open'));
+document.getElementById('add-cancel').addEventListener('click', () => addModal.classList.remove('open'));
+addModal.addEventListener('click', e => { if (e.target === addModal) addModal.classList.remove('open'); });
+
+document.getElementById('add-confirm').addEventListener('click', () => {
+  const name = document.getElementById('add-name').value.trim();
+  const ticker = document.getElementById('add-ticker').value.trim().toUpperCase();
+  const pe = document.getElementById('add-pe').value.trim();
+  const r40 = document.getElementById('add-r40').value.trim();
+  const mcap = document.getElementById('add-mcap').value.trim();
+  if (!name || !ticker) { alert('Nom et ticker sont obligatoires.'); return; }
+  if (ticker.indexOf(':') === -1) { alert('Le ticker doit \u00eatre au format EXCHANGE:TICKER (ex: NASDAQ:META).'); return; }
+  const sym = ticker.split(':')[1];
+  const ccyMap = { SIX:'CHF', EURONEXT:'\u20ac', MIL:'\u20ac', OMXCOP:'DKK', SZSE:'\u00a5' };
+  const exch = ticker.split(':')[0];
+  const stock = {
+    id: 'custom_' + sym + '_' + Date.now().toString(36),
+    title: name + ' (' + sym + ')',
+    tvSymbol: ticker,
+    pe: pe, r40: r40, mcap: mcap,
+    currency: ccyMap[exch] || '$'
+  };
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem('dash.customStocks') || '[]'); } catch(e){}
+  saved.push(stock);
+  localStorage.setItem('dash.customStocks', JSON.stringify(saved));
+  addModal.classList.remove('open');
+  // Clear inputs
+  ['add-name','add-ticker','add-pe','add-r40','add-mcap'].forEach(id => document.getElementById(id).value = '');
+  // Reload to render the new card cleanly
+  window.location.reload();
+});
+
+// Delete custom stock (event delegation)
+document.getElementById('grid').addEventListener('click', e => {
+  const btn = e.target.closest('.card-delete');
+  if (!btn) return;
+  const id = btn.dataset.delId;
+  if (!confirm('Supprimer cette action ?')) return;
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem('dash.customStocks') || '[]'); } catch(e){}
+  saved = saved.filter(s => s.id !== id);
+  localStorage.setItem('dash.customStocks', JSON.stringify(saved));
+  window.location.reload();
+});
+
+// Initial layout
 applyLayout();
 
 // Resize handler
