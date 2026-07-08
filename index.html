@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Income Statement Sankey Dashboard — 25 Companies</title>
+<title>Income Statement Sankey Dashboard</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
   * { box-sizing: border-box; }
@@ -91,7 +91,25 @@
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    line-height: 1.2;
+    flex-wrap: wrap;
   }
+  .card-title > span { display: inline-block; min-width: 0; }
+  .card-logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    object-fit: contain;
+    background: white;
+    border: 1px solid rgba(15,23,42,0.08);
+    padding: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+  }
+  body.dark .card-logo { background: #f1f5f9; }
   .card-period {
     font-size: 11px;
     color: #6a7a90;
@@ -109,8 +127,10 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 0;
+    gap: 1px;
+    min-width: 220px;
   }
+  .card-released { text-align: right; }
   .header-right {
     display: flex;
     align-items: flex-start;
@@ -149,6 +169,17 @@
   body.dark .r40-pill.r40-good { background: #14532d; color: #bbf7d0; }
   body.dark .r40-pill.r40-bad  { background: #7f1d1d; color: #fecaca; }
   body.dark .r40-pill.r40-na   { background: #334155; color: #cbd5e1; }
+  .div-pill {
+    background: #ccfbf1;
+    color: #115e59;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-left: 4px;
+  }
+  body.dark .div-pill { background: #134e4a; color: #99f6e4; }
   .r40pe-pill {
     background: #facc15;
     color: #713f12;
@@ -161,7 +192,16 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.12);
   }
   body.dark .r40pe-pill { background: #ca8a04; color: #fef9c3; }
-  .pill-row { display: flex; gap: 4px; flex-wrap: wrap; }
+  .pill-row {
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    grid-auto-rows: auto;
+    gap: 4px 5px;
+    justify-content: end;
+    justify-items: end;
+  }
+  /* Each chip occupies one grid cell; min-width prevents text from spilling */
+  .pill-row > * { min-width: 0; white-space: nowrap; }
   .card-toggle {
     background: #f1f5f9;
     border: 1px solid #e2e8f0;
@@ -252,6 +292,47 @@
     user-select: none;
   }
   .pager { background: #eef5ff; border-color: #93c5fd; }
+  /* ===== Tag system ===== */
+  .tag-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 7px; border-radius: 999px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: default;
+  }
+  .tag-pill.tag-AI { background: #cffafe; color: #155e75; }
+  .tag-pill.tag-Electricity { background: #ffedd5; color: #9a3412; }
+  body.dark .tag-pill.tag-AI { background: #155e75; color: #cffafe; }
+  body.dark .tag-pill.tag-Electricity { background: #9a3412; color: #ffedd5; }
+  .tag-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; justify-content: flex-end; }
+  .tag-edit-btn {
+    background: none; border: 1px dashed var(--border);
+    color: var(--text-muted); cursor: pointer;
+    border-radius: 999px; padding: 1px 7px;
+    font-size: 10px;
+  }
+  .tag-edit-btn:hover { background: var(--bg-card-2); }
+  .tag-filter-btn {
+    background: #f1f5f9; border: 1px solid #e2e8f0; color: #1a2a3a;
+    padding: 4px 9px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .tag-filter-btn:hover { background: #e2e8f0; }
+  .tag-filter-btn.active { background: #1e40af; color: white; border-color: #1e40af; }
+  .grid.hidden-by-tag .card[data-tagged="0"] { display: none; }
+  body.dark .tag-filter-btn { background: #334155; color: #f1f5f9; border-color: #475569; }
+  body.dark .tag-filter-btn:hover { background: #475569; }
+  .range-btn {
+    background: #f1f5f9; border: 1px solid #e2e8f0; color: #1a2a3a;
+    padding: 4px 9px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .range-btn:hover { background: #e2e8f0; }
+  .range-btn.active { background: #1e40af; color: white; border-color: #1e40af; }
+  body.dark .range-btn { background: #334155; color: #f1f5f9; border-color: #475569; }
+  body.dark .range-btn:hover:not(.active) { background: #475569; }
+  body.dark .range-btn.active { background: #2563eb; }
   .sort-select {
     background: #f1f5f9;
     border: 1px solid #e2e8f0;
@@ -335,8 +416,238 @@
   .modal-btn.primary { background: #16a34a; color: white; border-color: #16a34a; }
   .modal-btn.cancel { background: var(--bg-card-2); color: var(--text-primary); }
   .custom-badge { font-size: 9px; background: #16a34a; color: white; padding: 1px 5px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
-  .card-delete { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 16px; padding: 0 4px; }
+  .card-delete {
+    background: none; border: 1px solid transparent;
+    color: var(--text-muted); cursor: pointer;
+    font-size: 13px; padding: 2px 6px;
+    border-radius: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .card-standby {
+    background: none; border: 1px solid transparent;
+    color: var(--text-muted); cursor: pointer;
+    font-size: 14px; padding: 2px 6px;
+    border-radius: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .card-standby:hover { background: var(--bg-card-2); color: #d97706; border-color: var(--border); }
+  body.dark .card-standby:hover { background: #334155; color: #fbbf24; }
+  .grid > .card.is-standby { display: none; }
+  .standby-list { max-height: 320px; overflow-y: auto; margin: 12px 0; }
+  .standby-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; margin: 4px 0;
+    background: var(--bg-card-2); border-radius: 8px;
+    border: 1px solid var(--border-2);
+  }
+  .standby-row img { width: 22px; height: 22px; border-radius: 5px; object-fit: contain; background: white; padding: 1px; border: 1px solid rgba(0,0,0,0.06); }
+  .standby-row .name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .standby-row .reactivate {
+    background: #16a34a; color: white; border: none;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+  }
+  .standby-row .reactivate:hover { background: #15803d; }
+  .standby-empty { color: var(--text-muted); text-align: center; padding: 20px; font-size: 13px; }
+  .card-delete:hover { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+  body.dark .card-delete:hover { background: #7f1d1d; color: #fecaca; border-color: #991b1b; }
   .no-data-msg { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px; }
+  #scatter-view { display: none; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 28px; min-height: 600px; }
+  #analysis-view {
+    display: none;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+  #analysis-view.active {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 10px 14px;
+    align-items: start;
+  }
+  /* Section breaks (title, subtitle, h3, dynamic sections) span all columns */
+  #analysis-view > h2,
+  #analysis-view > .subtitle,
+  #analysis-view > h3,
+  #analysis-view > #custom-stocks-section,
+  #analysis-view > #timeline-container,
+  #analysis-view > #sweet-spot-table,
+  #analysis-view > #watch-zone-table { grid-column: 1 / -1; }
+  #compare-view {
+    display: none;
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  #compare-view.active { display: block; }
+  .grid.hidden-for-compare { display: none !important; }
+  .compare-header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
+  }
+  .compare-header h2 { font-size: 18px; color: var(--text-primary); margin: 0; }
+  .compare-metric-selector {
+    display: flex; gap: 4px;
+    background: var(--bg-card-2); padding: 3px;
+    border-radius: 8px;
+  }
+  .metric-btn {
+    background: transparent; border: none;
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  .metric-btn:hover { background: var(--bg-card); }
+  .metric-btn.active { background: #1e40af; color: white; }
+  body.dark .metric-btn.active { background: #2563eb; }
+  .compare-tag-filter { margin-left: 8px; }
+  .compare-tag-btn.active[data-tag="AI"] { background: #0e7490; }
+  .compare-tag-btn.active[data-tag="Electricity"] { background: #c2410c; }
+  .compare-subtitle {
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;
+  }
+  .grid.hidden-for-analysis { display: none !important; }
+  #analysis-view h2 { font-size: 20px; color: var(--text-primary); margin: 0 0 4px 0; }
+  #analysis-view .subtitle { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
+  #analysis-view h3 { font-size: 15px; color: var(--text-primary); margin: 14px 0 4px 0; border-bottom: 1px solid var(--border-2); padding-bottom: 4px; }
+  #analysis-view .insight {
+    background: #f4f7fb;
+    padding: 13px 16px 13px 52px;
+    border-radius: 12px;
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--text-primary);
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+    border: 1px solid #e3eaf3;
+    min-height: 46px;
+  }
+  #analysis-view .insight:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
+  #analysis-view .insight::before {
+    content: '·';
+    position: absolute;
+    left: 18px; top: 16px;
+    font-size: 14px;
+    width: 16px; height: 16px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    color: #94a3b8;
+  }
+  #analysis-view .insight.green { background: #ecfdf3; border-color: #bbf2cd; }
+  #analysis-view .insight.green::before { content: '◆'; color: #15803d; }
+  #analysis-view .insight.red { background: #fdf0f0; border-color: #f4c1c1; }
+  #analysis-view .insight.red::before { content: '◆'; color: #b91c1c; }
+  #analysis-view .insight.amber { background: #fdf6e7; border-color: #ecd6a5; }
+  #analysis-view .insight.amber::before { content: '◆'; color: #b45309; }
+  /* Company logo at the start of each insight (when known) */
+  #analysis-view .insight-logo {
+    position: absolute;
+    left: 14px; top: 13px;
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    object-fit: contain;
+    background: white;
+    border: 1px solid rgba(15,23,42,0.08);
+    padding: 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  #analysis-view .insight[data-has-logo] { padding-left: 52px; }
+  #analysis-view .insight[data-has-logo]::before { display: none; }
+  body.dark #analysis-view .insight-logo { background: #f1f5f9; }
+  #analysis-view .insight b { color: var(--text-primary); font-weight: 700; }
+  #analysis-view .insight .ticker {
+    font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    letter-spacing: 0.4px;
+    text-decoration: underline;
+    text-decoration-color: rgba(15,23,42,0.25);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
+  }
+  body.dark #analysis-view .insight { background: #1c2841; border-color: #2c3a55; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+  body.dark #analysis-view .insight.green { background: #1a2e23; border-color: #235c36; }
+  body.dark #analysis-view .insight.red { background: #2e1818; border-color: #5c2828; }
+  body.dark #analysis-view .insight.amber { background: #2e2410; border-color: #5c4318; }
+  body.dark #analysis-view .insight .ticker { color: #f1f5f9; text-decoration-color: rgba(241,245,249,0.30); }
+  /* ===== Earnings timeline (6 months) ===== */
+  .timeline-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin: 4px 0 8px;
+    grid-column: 1 / -1;
+  }
+  .timeline-col {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    padding: 8px 6px;
+    min-height: 90px;
+  }
+  .timeline-col.has-today { background: #eef5ff; border-color: #93c5fd; }
+  body.dark .timeline-col.has-today { background: #1e3a8a; border-color: #3b82f6; }
+  .timeline-month {
+    font-size: 11px; font-weight: 700; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 0 0 6px; text-align: center;
+    padding-bottom: 4px; border-bottom: 1px dashed var(--border);
+  }
+  .timeline-entry {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 5px; margin: 3px 0;
+    font-size: 10.5px; border-radius: 5px;
+    background: var(--bg-card);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .timeline-entry img { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .timeline-entry .day { color: var(--text-muted); font-size: 10px; flex-shrink: 0; }
+  .timeline-entry .ticker { font-weight: 700; font-family: 'SFMono-Regular', Consolas, monospace; }
+  .timeline-empty { color: var(--text-muted); font-size: 10px; text-align: center; padding-top: 12px; }
+
+  /* ===== Quadrant company tables ===== */
+  .quadrant-table {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto auto;
+    gap: 4px 12px;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 2px 0;
+    grid-column: 1 / -1;
+  }
+  .quadrant-table.green { background: linear-gradient(180deg, #ecfdf3 0%, #f7fcf9 100%); border-color: #bbf2cd; }
+  .quadrant-table.red { background: linear-gradient(180deg, #fdf0f0 0%, #fdf8f8 100%); border-color: #f4c1c1; }
+  body.dark .quadrant-table.green { background: linear-gradient(180deg, #14532d 0%, #16241d 100%); border-color: #1f3a2c; }
+  body.dark .quadrant-table.red { background: linear-gradient(180deg, #4a1818 0%, #2a1818 100%); border-color: #5c2828; }
+  .quadrant-table > * { font-size: 12px; padding: 5px 0; }
+  .quadrant-table > .qh { font-weight: 700; color: var(--text-secondary); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .quadrant-table img.qlogo { width: 24px; height: 24px; border-radius: 5px; object-fit: contain; background: white; padding: 1px; border: 1px solid rgba(0,0,0,0.06); }
+  .quadrant-table .qname { font-weight: 700; }
+  .quadrant-table .qname .ticker { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+  .quadrant-table .qmetric { font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 700; text-align: right; min-width: 50px; }
+  .quadrant-table .qmetric.good { color: #16a34a; }
+  .quadrant-table .qmetric.bad { color: #dc2626; }
+  body.dark .quadrant-table .qmetric.good { color: #4ade80; }
+  body.dark .quadrant-table .qmetric.bad { color: #f87171; }
+  #scatter-view.active { display: block; }
+  .grid.hidden-for-scatter { display: none !important; }
+  .scatter-header { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px 0; }
+  .scatter-subtitle { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
   .global-footer {
     text-align: center;
     color: var(--text-secondary);
@@ -351,16 +662,20 @@
 </head>
 <body>
 
-<h1>Income Statement Sankey Dashboard — 25 Companies</h1>
+<h1>Income Statement Sankey Dashboard — <span id="company-count">25</span> Companies</h1>
 <div class="subtitle">Latest reported quarter or fiscal year. Amounts in billions, native currency. YoY shown where reported. Toggle to view 5-year stock chart.</div>
 
 <div class="controls">
   <button class="global-toggle active" id="btn-view-sankey">Sankey income statement</button>
   <button class="global-toggle" id="btn-view-stock">5-year stock chart</button>
   <button class="global-toggle" id="btn-view-rule40">Rule of 40 (5y)</button>
-  <button class="global-toggle refresh-btn" id="btn-refresh" title="Reload page & refresh stock prices">🔄 Refresh</button>
+  <button class="global-toggle" id="btn-view-scatter">📊 Scatter R40 vs P/E</button>
+  <button class="global-toggle" id="btn-view-analysis">📰 Analyse</button>
+  <button class="global-toggle" id="btn-view-compare">📈 Évolution comparée</button>
+  <button class="global-toggle refresh-btn" id="btn-refresh" title="Re-fetch live data from Yahoo Finance (P/E, prices)">🔄 Refresh</button><span id="last-updated" style="font-size:11px;color:#94a3b8;margin-left:6px"></span>
   <button class="global-toggle theme-btn" id="btn-theme" title="Toggle dark / light mode">🌙 Dark</button>
-  <button class="global-toggle add-stock-btn" id="btn-add-stock" title="Ajouter une action manuellement">➕ Action</button>
+  <button class="global-toggle add-stock-btn" id="btn-add-stock" title="Ajouter une action manuellement">➕ Add stock</button>
+  <button class="global-toggle" id="btn-manage-standby" title="Voir / réactiver les sociétés en standby">💤 Standby (<span id="standby-count">0</span>)</button>
   <div class="layout-control" title="Chart height (Sankey + stock charts)">
     <span class="layout-label">📏 Height</span>
     <button class="layout-btn" id="btn-height-dec">−</button>
@@ -372,6 +687,18 @@
     <button class="layout-btn" id="btn-cols-dec">−</button>
     <span class="layout-value" id="val-cols">2</span>
     <button class="layout-btn" id="btn-cols-inc">+</button>
+  </div>
+  <div class="layout-control" title="Échelle de temps de tous les stock charts (1 an / 5 ans / max)">
+    <span class="layout-label">⏱ Range</span>
+    <button class="range-btn" data-range="12M">1Y</button>
+    <button class="range-btn active" data-range="60M">5Y</button>
+    <button class="range-btn" data-range="ALL">All</button>
+  </div>
+  <div class="layout-control" title="Filter by tag">
+    <span class="layout-label">🏷 Filter</span>
+    <button class="tag-filter-btn active" data-tag="">All</button>
+    <button class="tag-filter-btn" data-tag="AI">🤖 AI</button>
+    <button class="tag-filter-btn" data-tag="Electricity">⚡ Electricity</button>
   </div>
   <div class="layout-control" title="Sort cards">
     <span class="layout-label">↕ Sort</span>
@@ -385,11 +712,100 @@
       <option value="mcap">Market cap ↓ (USD)</option>
       <option value="r40">Rule of 40 ↓</option>
       <option value="r40pe">R40 / P/E ↓</option>
+      <option value="div">Dividend yield ↓</option>
     </select>
   </div>
 </div>
 
 <div class="grid" id="grid"></div>
+
+<div id="scatter-view">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+    <h2 class="scatter-header" style="margin:0">Scatter plot : Rule of 40 (axe X) vs P/E TTM (axe Y)</h2>
+    <div class="layout-control" id="scatter-scale-ctrl" title="Mise à l'échelle du graphique">
+      <span class="layout-label">🔍 Échelle</span>
+      <button class="layout-btn scale-btn active" data-scale="zoom" style="width:auto;padding:0 10px">Majorité (85%)</button>
+      <button class="layout-btn scale-btn" data-scale="all" style="width:auto;padding:0 10px">Tous</button>
+    </div>
+  </div>
+  <div class="scatter-subtitle">Axe P/E inversé : haut = peu cher (bon), bas = cher (cher). Quadrant <b style="color:#16a34a">haut-droite vert</b> = sweet spot (R40&nbsp;≥&nbsp;40 + P/E&nbsp;≤&nbsp;30). Quadrant <b style="color:#dc2626">bas-gauche rouge</b> = zone à éviter (R40&nbsp;&lt;&nbsp;40 + P/E&nbsp;&gt;&nbsp;30). Cercle plein = actuel · Cercle creux = il y a 1 an · Ligne pointillée = trajectoire.</div>
+  <div id="scatter-chart" style="width:100%;height:620px"></div>
+</div>
+
+<div id="compare-view">
+  <div class="compare-header">
+    <h2>📈 Évolution comparée — 5 ans</h2>
+    <div class="compare-metric-selector">
+      <button class="metric-btn active" data-metric="r40pe">R40 / P/E</button>
+      <button class="metric-btn" data-metric="r40">Rule of 40</button>
+      <button class="metric-btn" data-metric="pe">P/E TTM</button>
+    </div>
+    <div class="compare-metric-selector compare-tag-filter">
+      <button class="metric-btn active compare-tag-btn" data-tag="">All</button>
+      <button class="metric-btn compare-tag-btn" data-tag="AI">🤖 AI</button>
+      <button class="metric-btn compare-tag-btn" data-tag="Electricity">⚡ Electricity</button>
+    </div>
+  </div>
+  <div class="compare-subtitle">Une ligne par société. Survole une courbe pour voir le ticker + valeur. Click légende pour masquer une société. Custom stocks et sociétés sans historique exclus.</div>
+  <div id="compare-chart" style="width:100%;height:640px"></div>
+</div>
+
+<div id="analysis-view">
+  <h2>📰 Analyse — derniers changements importants</h2>
+  <div class="subtitle">Synthèse des publications les plus récentes (mai-juin 2026) et changements de valorisation marquants. Mise à jour manuelle — pour les chiffres live, utilise le bouton 🔄 Refresh.</div>
+
+  <h3>🗞️ Publications récentes (post-15 mai 2026)</h3>
+  <div class="insight green"><span class="ticker">NVDA</span> · Q1 FY27 publié le <b>20 mai 2026</b> : revenue record <b>$81.6B (+85% Y/Y)</b>, Data Center $75.2B (+92%). Dividende relevé de $0.01 à $0.25/quarter (×25). Nouveau plan de rachat de $80B. Marges GAAP brutes à 74.9%. La courbe de croissance reste agressive et le PE TTM est passé de 33 à <b>~46</b>.</div>
+  <div class="insight"><span class="ticker">BABA</span> · Q4 FY26 publié le <b>13 mai 2026</b> : revenue ¥243B (+3% Y/Y), <b>en-dessous du consensus</b>. Cloud Intelligence accélère à +40% Y/Y avec produits AI à +100% pour le 11ème trimestre consécutif. Marges sous pression à cause des investissements AI massifs. Dividende annuel relevé à <b>$2.5B</b> (yield ~2.0%).</div>
+  <div class="insight red"><span class="ticker">XPEV</span> · Q1 2026 publié le <b>28 mai 2026</b> : revenue ¥13B <b>(-18% Y/Y)</b> — ralentissement marqué après le pic 2025. Vehicle sales -23%. Marge véhicule à 12.1% (vs 10.5% Y/Y, en hausse) mais croissance qui décélère brutalement.</div>
+  <div class="insight green"><span class="ticker">PATH</span> · Q1 FY27 publié le <b>3 juin 2026</b> : revenue $418M (+17%), <b>première profitabilité GAAP de l'histoire</b> ($28M op income). ARR à $1.9B (+12%). EPS non-GAAP $0.15 (+36% Y/Y). Le PE TTM remonte à ~24 (turnaround validé).</div>
+
+  <h3>📊 Mouvements de valorisation marquants</h3>
+  <div class="insight amber"><span class="ticker">TSLA</span> a vu son <b>PE TTM exploser à ~355</b> (vs ~85 il y a 6 mois) — l'EPS TTM s'est effondré à ~$1.24 malgré un cours qui s'est redressé à ~$440. Rule of 40 retombé à 20 (croissance molle + marges comprimées). Position en haut à gauche du scatter : <b>cher pour la qualité offerte</b>.</div>
+  <div class="insight amber"><span class="ticker">PLTR</span> reste extrêmement valorisé à PE 143, mais Rule of 40 record à <b>131</b> (croissance +85% + marge op 46%). Forte qualité, mais le prix l'inclut déjà. Risque : toute déception de croissance frappera fort.</div>
+  <div class="insight green"><span class="ticker">CATL</span> à PE 25 et R40 73 (croissance +52% + marge 21%) → l'un des meilleurs rapports qualité/prix du panier, dans le quadrant <b>bas-droite (sweet spot)</b> avec Swissquote, Microsoft, Alphabet.</div>
+  <div class="insight"><span class="ticker">NVDA</span> a vu son PE descendre de 52 → 33 → 46 récemment (rachats + dividende → moins de bénéfices retenus, mais EPS qui rattrape encore). Croissance toujours folle (+85% Y/Y au Q1 FY27).</div>
+
+  <h3>💰 Initiations et hausses de dividende</h3>
+  <div class="insight green"><span class="ticker">NVDA</span> dividende multiplié par 25 (de $0.01 à $0.25/quarter) en mai 2026 → yield ~0.05% reste symbolique mais signal fort de confiance.</div>
+  <div class="insight green"><span class="ticker">BABA</span> nouveau dividende annuel à $2.5B (yield ~2.0%), réponse aux pressions investisseurs sur l'allocation de capital.</div>
+  <div class="insight">Champions historiques du dividende dans le panier : <span class="ticker">SQN</span> (~3.5%), <span class="ticker">ABBN</span> et <span class="ticker">GIVN</span> (~2.5%), <span class="ticker">MC</span> et <span class="ticker">SU</span> (~1.8%).</div>
+
+  <h3>⏰ Prochaines publications attendues (6 mois)</h3>
+  <div id="timeline-container"></div>
+
+  <h3>🎯 Sociétés du quadrant "sweet spot" (R40 ≥ 40 + P/E ≤ 30)</h3>
+  <div id="sweet-spot-table"></div>
+
+  <h3>⚠️ Sociétés à surveiller (P/E élevé mais qualité douteuse)</h3>
+  <div id="watch-zone-table"></div>
+
+  <div id="custom-stocks-section"></div>
+</div>
+
+<div class="modal-overlay" id="standby-modal">
+  <div class="modal" style="max-width:480px">
+    <h3>💤 Sociétés en standby</h3>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">Les sociétés en standby sont masquées de la grille principale. Clique sur Réactiver pour les remettre.</div>
+    <div class="standby-list" id="standby-list"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="standby-close">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tag-modal">
+  <div class="modal">
+    <h3>🏷 Modifier les tags</h3>
+    <div id="tag-modal-company" style="font-size:13px;color:var(--text-secondary);margin-bottom:10px"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin:8px 0"><input type="checkbox" id="tag-AI"> 🤖 AI</label>
+    <label style="display:flex;align-items:center;gap:8px;margin:8px 0"><input type="checkbox" id="tag-Electricity"> ⚡ Electricity</label>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="tag-cancel">Annuler</button>
+      <button class="modal-btn primary" id="tag-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
@@ -403,6 +819,8 @@
     <input id="add-pe" placeholder="ex: 28" type="number" step="0.1" />
     <label>Rule of 40 (optionnel)</label>
     <input id="add-r40" placeholder="ex: 55" type="number" step="1" />
+    <label>Dividend yield % (optionnel)</label>
+    <input id="add-div" placeholder="ex: 1.5" type="number" step="0.01" />
     <label>Market cap (optionnel)</label>
     <input id="add-mcap" placeholder="ex: $1.5T ou CHF 10B" />
     <div class="modal-actions">
@@ -461,6 +879,111 @@ function buildSankey(divId, cfg) {
     if (el) el.innerHTML = '<div class="no-data-msg">Action ajout\u00e9e manuellement \u2014 pas de compte de r\u00e9sultat.<br>Utilise le bouton \ud83d\udcc8 Stock chart pour voir le cours et le P/E.</div>';
     return;
   }
+  // Need revNode reference for scale computation below — but no YoY injection (only confirmed YoY shown)
+  const revNode = cfg.nodes.find(n => n.kind === 'rev');
+
+  // ====== Sankey value normalization + flow conservation ======
+  // Goal 1: make the Revenue node a constant size (100) across all companies so the blue Revenue bar
+  //         has the same visual height in every Sankey card.
+  // Goal 2: enforce exact flow conservation per node so links don't visually overflow the boxes.
+  const revValOrig = (revNode && revNode.value > 0) ? revNode.value : null;
+  const scale = revValOrig ? (100 / revValOrig) : 1;
+
+  // Work on a shallow clone of links so we don't mutate the source data
+  const linksScaled = cfg.links.map(l => Object.assign({}, l, { v: l.v * scale, _vOrig: l.v }));
+
+  // ====== Auto-position y by column: profits top, costs bottom, proportional sizing ======
+  // Identify "side-income" rev_seg nodes (Other income, Equity gains, warrant gains, etc.) —
+  // these are rev_seg nodes that sit OUTSIDE the leftmost segment column. They should be
+  // placed at the very TOP of their column (priority 0) so that the flow into Net profit
+  // doesn't cross the operating flows below.
+  const revSegXs = cfg.nodes.filter(n => n.kind === 'rev_seg').map(n => n.x);
+  const segMinX = revSegXs.length ? Math.min.apply(null, revSegXs) : 0;
+  const prioOf = (n) => {
+    if (n.kind === 'rev_seg' && n.x > segMinX + 0.05) return 0; // side income → above profit
+    switch (n.kind) {
+      case 'profit':  return 1;
+      case 'rev':     return 2;
+      case 'rev_seg': return 2;
+      case 'tax':     return 3;
+      case 'opex':    return 4;
+      case 'cost':    return 5;
+      default:        return 9;
+    }
+  };
+  const colMap = {};
+  cfg.nodes.forEach((n, i) => {
+    const key = (Math.round(n.x * 100) / 100).toString();
+    if (!colMap[key]) colMap[key] = [];
+    colMap[key].push({ idx: i, node: n });
+  });
+  const TOTAL_H = 0.78, TOP_PAD = 0.11; // leave 11% top + 11% bottom for label headroom
+  const SIDE_BAND_H = 0.10; // dedicated 10% top band for side-income nodes (so they don't get squeezed out)
+  const computedY = cfg.nodes.map(() => null);
+  Object.values(colMap).forEach(col => {
+    // Sort: side-income first (top), then profits, revenue, tax, opex, cost (bottom)
+    col.sort((a, b) => {
+      const pa = prioOf(a.node);
+      const pb = prioOf(b.node);
+      if (pa !== pb) return pa - pb;
+      return (a.node.y || 0) - (b.node.y || 0);
+    });
+
+    // Split: side-income (priority 0) vs everything else
+    const sideIncome = col.filter(it => prioOf(it.node) === 0);
+    const mainNodes  = col.filter(it => prioOf(it.node) > 0);
+
+    if (sideIncome.length > 0) {
+      // Place side-income in the dedicated top band (fixed size, not proportional to total flow)
+      const sideTotal = sideIncome.reduce((s, it) => s + (it.node.value || 0), 0);
+      let cur = TOP_PAD - 0.06; // start a bit above standard top so it sits clearly above the trunk
+      sideIncome.forEach(it => {
+        const h = sideTotal > 0 ? (it.node.value / sideTotal) * SIDE_BAND_H : SIDE_BAND_H / sideIncome.length;
+        computedY[it.idx] = cur + h / 2;
+        cur += h;
+      });
+      // Main nodes start below the side band with a small gap
+      const mainBandTop = TOP_PAD + SIDE_BAND_H - 0.02;
+      const mainBandH = TOTAL_H - SIDE_BAND_H + 0.02;
+      const mainTotal = mainNodes.reduce((s, it) => s + (it.node.value || 0), 0);
+      if (mainTotal > 0) {
+        let mc = mainBandTop;
+        mainNodes.forEach(it => {
+          const h = (it.node.value / mainTotal) * mainBandH;
+          computedY[it.idx] = mc + h / 2;
+          mc += h;
+        });
+      }
+    } else {
+      // No side-income → distribute the whole band proportionally as before
+      const total = col.reduce((s, it) => s + (it.node.value || 0), 0);
+      if (total <= 0) return;
+      let cur = TOP_PAD;
+      col.forEach(it => {
+        const h = (it.node.value / total) * TOTAL_H;
+        computedY[it.idx] = cur + h / 2;
+        cur += h;
+      });
+    }
+  });
+
+  // Conservation pass: for each internal node, force sum(inflows) == sum(outflows)
+  // Approach: iterate from source nodes outward, scaling outflows so they match inflows exactly.
+  // First, build node index for fast lookup.
+  const inflows = cfg.nodes.map(() => 0);
+  const outflows = cfg.nodes.map(() => 0);
+  linksScaled.forEach(l => { inflows[l.t] += l.v; outflows[l.s] += l.v; });
+  // For each non-source, non-leaf node, adjust outflows so sum(outflow) == sum(inflow).
+  cfg.nodes.forEach((_, i) => {
+    const ins = inflows[i], outs = outflows[i];
+    if (ins > 0 && outs > 0 && Math.abs(ins - outs) > 1e-6) {
+      const k = ins / outs;
+      // scale every outflow from this node by k
+      linksScaled.forEach(l => { if (l.s === i) l.v *= k; });
+      outflows[i] = ins;
+    }
+  });
+
   const labels = cfg.nodes.map(n => lbl(n, cfg.currency, cfg.unit));
   const node_color = cfg.nodes.map(n => {
     switch (n.kind) {
@@ -486,24 +1009,26 @@ function buildSankey(divId, cfg) {
     type: 'sankey',
     arrangement: 'snap',
     node: {
-      pad: 12, thickness: 18,
+      pad: 18, thickness: 14,
       line: { color: 'white', width: 1 },
       label: labels, color: node_color,
       x: cfg.nodes.map(n => n.x),
-      y: cfg.nodes.map(n => n.y),
+      y: computedY,
     },
     link: {
-      source: cfg.links.map(l => l.s),
-      target: cfg.links.map(l => l.t),
-      value:  cfg.links.map(l => l.v),
+      source: linksScaled.map(l => l.s),
+      target: linksScaled.map(l => l.t),
+      value:  linksScaled.map(l => l.v),
+      // Show original (un-normalized) values in hover
+      customdata: linksScaled.map(l => l._vOrig),
       color: link_color,
-      hovertemplate: '%{source.label} → %{target.label}<br>' + (cfg.currency || '$') + '%{value:.2f}' + (cfg.unit || 'B') + '<extra></extra>'
+      hovertemplate: '%{source.label} → %{target.label}<br>' + (cfg.currency || '$') + '%{customdata:.2f}' + (cfg.unit || 'B') + '<extra></extra>'
     },
     textfont: { size: 10, color: '#0a2540' }
   }];
   const layout = {
     font: { family: 'Inter, -apple-system, Segoe UI, Roboto, sans-serif', size: 10, color: '#0a2540' },
-    margin: { l: 4, r: 4, t: 4, b: 4 },
+    margin: { l: 12, r: 12, t: 18, b: 18 }, // wider margins prevent label clipping
     paper_bgcolor: 'white',
     plot_bgcolor: 'white',
   };
@@ -520,7 +1045,7 @@ const COMPANIES = [
   // -------------------- 1. Tesla Q1 2026 --------------------
   {
     id: 'tsla', title: 'Tesla (TSLA)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 22.36, mcap: '$1.4T', tvSymbol: 'NASDAQ:TSLA', pe: '355', released: 'Apr 22, 2026', nextRelease: 'Jul 22, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 22.36, mcap: '$1.4T', tvSymbol: 'NASDAQ:TSLA', pe: '355', div: '0', released: 'Apr 22, 2026', nextRelease: 'Jul 22, 2026 (Q2)',
     stats: [
       ['Revenue', '$22.4B', '+16% Y/Y', 'pos'],
       ['Gross margin', '21.1%', '+5 pp Y/Y', 'pos'],
@@ -560,7 +1085,7 @@ const COMPANIES = [
   // -------------------- 2. Nvidia Q4 FY26 --------------------
   {
     id: 'nvda', title: 'Nvidia (NVDA)', period: 'Q4 FY2026 · USD',
-    currency: '$', unit: 'B', rev: 68.10, mcap: '$5.2T', tvSymbol: 'NASDAQ:NVDA', pe: '33', released: 'Feb 25, 2026', nextRelease: 'May 28, 2026 (Q1 FY27)',
+    currency: '$', unit: 'B', rev: 68.10, mcap: '$5.2T', tvSymbol: 'NASDAQ:NVDA', pe: '46', div: '0.05', released: 'May 20, 2026', nextRelease: 'Aug 27, 2026 (Q2 FY27)',
     stats: [
       ['Revenue', '$68.1B', '+73% Y/Y', 'pos'],
       ['Gross margin', '75.0%', 'GAAP', 'pos'],
@@ -595,7 +1120,7 @@ const COMPANIES = [
   // -------------------- 3. Alphabet Q1 2026 --------------------
   {
     id: 'googl', title: 'Alphabet (GOOGL)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 109.9, mcap: '$4.2T', tvSymbol: 'NASDAQ:GOOGL', pe: '27', released: 'Apr 29, 2026', nextRelease: 'Jul 28, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 109.9, mcap: '$4.2T', tvSymbol: 'NASDAQ:GOOGL', pe: '27', div: '0.4', released: 'Apr 29, 2026', nextRelease: 'Jul 28, 2026 (Q2)',
     stats: [
       ['Revenue', '$109.9B', '+22% Y/Y', 'pos'],
       ['Op margin', '36.1%', '+2 pp Y/Y', 'pos'],
@@ -637,7 +1162,7 @@ const COMPANIES = [
   // -------------------- 4. AMD Q1 2026 --------------------
   {
     id: 'amd', title: 'AMD (AMD)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 10.29, mcap: '$580B', tvSymbol: 'NASDAQ:AMD', pe: '155', released: 'May 5, 2026', nextRelease: 'Aug 5, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 10.29, mcap: '$580B', tvSymbol: 'NASDAQ:AMD', pe: '155', div: '0', released: 'May 5, 2026', nextRelease: 'Aug 5, 2026 (Q2)',
     stats: [
       ['Revenue', '$10.3B', '+38% Y/Y', 'pos'],
       ['Gross margin', '53.0%', 'GAAP', 'pos'],
@@ -673,7 +1198,7 @@ const COMPANIES = [
   // -------------------- 5. Apple Q2 FY26 --------------------
   {
     id: 'aapl', title: 'Apple (AAPL)', period: 'Q2 FY2026 · USD',
-    currency: '$', unit: 'B', rev: 111.18, mcap: '$3.9T', tvSymbol: 'NASDAQ:AAPL', pe: '34', released: 'Apr 30, 2026', nextRelease: 'Jul 30, 2026 (Q3 FY26)',
+    currency: '$', unit: 'B', rev: 111.18, mcap: '$3.9T', tvSymbol: 'NASDAQ:AAPL', pe: '34', div: '0.5', released: 'Apr 30, 2026', nextRelease: 'Jul 30, 2026 (Q3 FY26)',
     stats: [
       ['Revenue', '$111.2B', '+17% Y/Y', 'pos'],
       ['Gross margin', '49.3%', 'record', 'pos'],
@@ -708,7 +1233,7 @@ const COMPANIES = [
   // -------------------- 6. Microsoft Q3 FY26 --------------------
   {
     id: 'msft', title: 'Microsoft (MSFT)', period: 'Q3 FY2026 · USD',
-    currency: '$', unit: 'B', rev: 82.9, mcap: '$3.2T', tvSymbol: 'NASDAQ:MSFT', pe: '25', released: 'Apr 29, 2026', nextRelease: 'Jul 29, 2026 (Q4 FY26)',
+    currency: '$', unit: 'B', rev: 82.9, mcap: '$3.2T', tvSymbol: 'NASDAQ:MSFT', pe: '25', div: '0.7', released: 'Apr 29, 2026', nextRelease: 'Jul 29, 2026 (Q4 FY26)',
     stats: [
       ['Revenue', '$82.9B', '+18% Y/Y', 'pos'],
       ['Gross margin', '~70%', 'est.', 'pos'],
@@ -742,7 +1267,7 @@ const COMPANIES = [
   // -------------------- 7. Amazon Q1 2026 --------------------
   {
     id: 'amzn', title: 'Amazon (AMZN)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 181.5, mcap: '$2.8T', tvSymbol: 'NASDAQ:AMZN', pe: '32', released: 'Apr 29, 2026', nextRelease: 'Jul 31, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 181.5, mcap: '$2.8T', tvSymbol: 'NASDAQ:AMZN', pe: '32', div: '0', released: 'Apr 29, 2026', nextRelease: 'Jul 31, 2026 (Q2)',
     stats: [
       ['Revenue', '$181.5B', '+17% Y/Y', 'pos'],
       ['Op income', '$23.9B', '13.1% margin', 'pos'],
@@ -776,7 +1301,7 @@ const COMPANIES = [
   // -------------------- 8. ASML Q1 2026 --------------------
   {
     id: 'asml', title: 'ASML (ASML)', period: 'Q1 2026 · EUR',
-    currency: '€', unit: 'B', rev: 8.80, mcap: '$556B', tvSymbol: 'NASDAQ:ASML', pe: '52', released: 'Apr 15, 2026', nextRelease: 'Jul 16, 2026 (Q2)',
+    currency: '€', unit: 'B', rev: 8.80, mcap: '$556B', tvSymbol: 'NASDAQ:ASML', pe: '52', div: '1.0', released: 'Apr 15, 2026', nextRelease: 'Jul 16, 2026 (Q2)',
     stats: [
       ['Net sales', '€8.8B', '', 'pos'],
       ['Gross margin', '53.0%', '', 'pos'],
@@ -809,7 +1334,7 @@ const COMPANIES = [
   // -------------------- 9. Intuitive Surgical Q1 2026 --------------------
   {
     id: 'isrg', title: 'Intuitive Surgical (ISRG)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 2.77, mcap: '$162B', tvSymbol: 'NASDAQ:ISRG', pe: '53', released: 'Apr 22, 2026', nextRelease: 'Jul 22, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 2.77, mcap: '$162B', tvSymbol: 'NASDAQ:ISRG', pe: '53', div: '0', released: 'Apr 22, 2026', nextRelease: 'Jul 22, 2026 (Q2)',
     stats: [
       ['Revenue', '$2.77B', '+23% Y/Y', 'pos'],
       ['Recurring rev', '86%', 'of total', 'pos'],
@@ -842,7 +1367,7 @@ const COMPANIES = [
   // -------------------- 10. Palantir Q1 2026 --------------------
   {
     id: 'pltr', title: 'Palantir (PLTR)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 1.63, mcap: '$306B', tvSymbol: 'NASDAQ:PLTR', pe: '143', released: 'May 4, 2026', nextRelease: 'Aug 5, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 1.63, mcap: '$306B', tvSymbol: 'NASDAQ:PLTR', pe: '143', div: '0', released: 'May 4, 2026', nextRelease: 'Aug 5, 2026 (Q2)',
     stats: [
       ['Revenue', '$1.63B', '+85% Y/Y', 'pos'],
       ['Gross margin', '~80%', 'GAAP est.', 'pos'],
@@ -876,7 +1401,7 @@ const COMPANIES = [
   // -------------------- 11. SoFi Q1 2026 --------------------
   {
     id: 'sofi', title: 'SoFi (SOFI)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 1.146, mcap: '$21B', tvSymbol: 'NASDAQ:SOFI', pe: '32', released: 'Apr 29, 2026', nextRelease: 'Jul 28, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 1.146, mcap: '$21B', tvSymbol: 'NASDAQ:SOFI', pe: '32', div: '0', released: 'Apr 29, 2026', nextRelease: 'Jul 28, 2026 (Q2)',
     stats: [
       ['Revenue', '$1.15B', '+43% Y/Y', 'pos'],
       ['Net income', '$0.17B', '+~150% Y/Y', 'pos'],
@@ -907,7 +1432,7 @@ const COMPANIES = [
   // -------------------- 12. Match Group Q1 2026 --------------------
   {
     id: 'mtch', title: 'Match Group (MTCH)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 0.864, mcap: '$7.4B', tvSymbol: 'NASDAQ:MTCH', pe: '14', released: 'May 5, 2026', nextRelease: 'Aug 5, 2026 (Q2)', /* PE TTM 13.5 verified */
+    currency: '$', unit: 'B', rev: 0.864, mcap: '$7.4B', tvSymbol: 'NASDAQ:MTCH', pe: '14', div: '0', released: 'May 5, 2026', nextRelease: 'Aug 5, 2026 (Q2)', /* PE TTM 13.5 verified */
     stats: [
       ['Revenue', '$0.864B', '+4% Y/Y', 'pos'],
       ['Adj. EBITDA', '$0.343B', '40% margin', 'pos'],
@@ -942,7 +1467,7 @@ const COMPANIES = [
   // -------------------- 13. Logitech FY2026 --------------------
   {
     id: 'logn', title: 'Logitech (LOGN)', period: 'FY 2026 · USD',
-    currency: '$', unit: 'B', rev: 4.84, mcap: 'CHF 11B', tvSymbol: 'SIX:LOGN', pe: '26', released: 'May 5, 2026', nextRelease: 'Jul 28, 2026 (Q1 FY27)',
+    currency: '$', unit: 'B', rev: 4.84, mcap: 'CHF 11B', tvSymbol: 'SIX:LOGN', pe: '26', div: '1.6', released: 'May 5, 2026', nextRelease: 'Jul 28, 2026 (Q1 FY27)',
     stats: [
       ['Revenue', '$4.84B', '+6% Y/Y', 'pos'],
       ['Op income', '$0.78B', '+18% Y/Y', 'pos'],
@@ -978,7 +1503,7 @@ const COMPANIES = [
   // -------------------- 14. Alibaba Q4 FY2026 --------------------
   {
     id: 'baba', title: 'Alibaba (BABA)', period: 'Q4 FY2026 · RMB',
-    currency: '¥', unit: 'B', rev: 284.8, mcap: '$304B', tvSymbol: 'NYSE:BABA', pe: '21', released: 'May 15, 2026 (est.)', nextRelease: 'Aug 14, 2026 (Q1 FY27)',
+    currency: '¥', unit: 'B', rev: 284.8, mcap: '$304B', tvSymbol: 'NYSE:BABA', pe: '20', div: '2.0', released: 'May 13, 2026', nextRelease: 'Aug 14, 2026 (Q1 FY27)',
     stats: [
       ['Revenue', '¥284.8B', '+9% Y/Y', 'pos'],
       ['Cloud growth', '+35%', 'Y/Y', 'pos'],
@@ -1013,7 +1538,7 @@ const COMPANIES = [
   // -------------------- 15. CATL Q1 2026 --------------------
   {
     id: 'catl', title: 'CATL (300750.SZ)', period: 'Q1 2026 · RMB',
-    currency: '¥', unit: 'B', rev: 129.13, mcap: '¥2T', tvSymbol: 'SZSE:300750', pe: '25', released: 'Apr 24, 2026', nextRelease: 'Aug 22, 2026 (Q2)',
+    currency: '¥', unit: 'B', rev: 129.13, mcap: '¥2T', tvSymbol: 'SZSE:300750', pe: '25', div: '1.5', released: 'Apr 24, 2026', nextRelease: 'Aug 22, 2026 (Q2)',
     stats: [
       ['Revenue', '¥129.1B', '+52% Y/Y', 'pos'],
       ['Op income', '¥26.7B', '~21% margin', 'pos'],
@@ -1046,7 +1571,7 @@ const COMPANIES = [
   // -------------------- 16. XPeng Q4 2025 --------------------
   {
     id: 'xpev', title: 'XPeng (XPEV)', period: 'Q4 2025 · RMB *',
-    currency: '¥', unit: 'B', rev: 22.25, mcap: '$16.5B', tvSymbol: 'NYSE:XPEV', pe: 'n/m', released: 'Mar 18, 2026', nextRelease: 'May 27, 2026 (Q1 2026)',
+    currency: '¥', unit: 'B', rev: 22.25, mcap: '$16.5B', tvSymbol: 'NYSE:XPEV', pe: 'n/m', div: '0', released: 'May 28, 2026', nextRelease: 'Aug 19, 2026 (Q2 2026)',
     stats: [
       ['Revenue', '¥22.3B', 'first profitable Q', 'pos'],
       ['Vehicle margin', '13.0%', '', 'pos'],
@@ -1079,7 +1604,7 @@ const COMPANIES = [
   // -------------------- 17. Joby Aviation Q1 2026 --------------------
   {
     id: 'joby', title: 'Joby Aviation (JOBY)', period: 'Q1 2026 · USD',
-    currency: '$', unit: 'B', rev: 0.240, mcap: '$8.9B', tvSymbol: 'NYSE:JOBY', pe: 'n/m', released: 'May 6, 2026', nextRelease: 'Aug 6, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 0.240, mcap: '$8.9B', tvSymbol: 'NYSE:JOBY', pe: 'n/m', div: '0', released: 'May 6, 2026', nextRelease: 'Aug 6, 2026 (Q2)',
     stats: [
       ['Revenue', '$0.024B', 'first meaningful', 'pos'],
       ['Op loss', '-$0.234B', '', 'neg'],
@@ -1107,7 +1632,7 @@ const COMPANIES = [
   // -------------------- 18. UiPath FY 2026 --------------------
   {
     id: 'path', title: 'UiPath (PATH)', period: 'FY 2026 · USD',
-    currency: '$', unit: 'B', rev: 1.611, mcap: '$4.9B', tvSymbol: 'NYSE:PATH', pe: '22', released: 'Mar 12, 2026', nextRelease: 'Jun 4, 2026 (Q1 FY27)',
+    currency: '$', unit: 'B', rev: 1.611, mcap: '$4.9B', tvSymbol: 'NYSE:PATH', pe: '24', div: '0', released: 'Jun 3, 2026', nextRelease: 'Sep 3, 2026 (Q2 FY27)',
     stats: [
       ['Revenue', '$1.61B', '+13% Y/Y', 'pos'],
       ['ARR', '$1.85B', '+11% Y/Y', 'pos'],
@@ -1140,7 +1665,7 @@ const COMPANIES = [
   // -------------------- 19. Swissquote FY 2025 --------------------
   {
     id: 'sqn', title: 'Swissquote (SQN)', period: 'FY 2025 · CHF',
-    currency: 'CHF ', unit: 'B', rev: 0.7233, mcap: 'CHF 8B', tvSymbol: 'SIX:SQN', pe: '22', released: 'Mar 20, 2026', nextRelease: 'Aug 14, 2026 (H1)',
+    currency: 'CHF ', unit: 'B', rev: 0.7233, mcap: 'CHF 8B', tvSymbol: 'SIX:SQN', pe: '22', div: '3.5', released: 'Mar 20, 2026', nextRelease: 'Aug 14, 2026 (H1)',
     stats: [
       ['Net revenue', 'CHF 0.72B', '+9.4% Y/Y', 'pos'],
       ['Op profit', 'CHF 0.42B', '+22% Y/Y', 'pos'],
@@ -1172,7 +1697,7 @@ const COMPANIES = [
   // -------------------- 20. ABB FY 2025 --------------------
   {
     id: 'abbn', title: 'ABB (ABBN)', period: 'FY 2025 · USD (est.)',
-    currency: '$', unit: 'B', rev: 33.5, mcap: 'CHF 142B', tvSymbol: 'SIX:ABBN', pe: '43', released: 'Feb 5, 2026', nextRelease: 'Jul 17, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 33.5, mcap: 'CHF 142B', tvSymbol: 'SIX:ABBN', pe: '43', div: '2.5', released: 'Feb 5, 2026', nextRelease: 'Jul 17, 2026 (Q2)',
     stats: [
       ['Revenue', '~$33.5B', 'record', 'pos'],
       ['Op EBITA margin', '~20%', 'expanding', 'pos'],
@@ -1207,7 +1732,7 @@ const COMPANIES = [
   // -------------------- 21. LVMH FY 2025 --------------------
   {
     id: 'mc', title: 'LVMH (MC.PA)', period: 'FY 2025 · EUR',
-    currency: '€', unit: 'B', rev: 80.8, mcap: '€235B', tvSymbol: 'EURONEXT:MC', pe: '21', released: 'Jan 27, 2026', nextRelease: 'Jul 22, 2026 (H1)',
+    currency: '€', unit: 'B', rev: 80.8, mcap: '€235B', tvSymbol: 'EURONEXT:MC', pe: '21', div: '1.8', released: 'Jan 27, 2026', nextRelease: 'Jul 22, 2026 (H1)',
     stats: [
       ['Revenue', '€80.8B', '-2% Y/Y org', 'neg'],
       ['Op margin', '22.0%', 'recurring', 'pos'],
@@ -1244,7 +1769,7 @@ const COMPANIES = [
   // -------------------- 22. Schneider Electric FY 2025 --------------------
   {
     id: 'su', title: 'Schneider Electric (SU.PA)', period: 'FY 2025 · EUR',
-    currency: '€', unit: 'B', rev: 40.2, mcap: '€159B', tvSymbol: 'EURONEXT:SU', pe: '36', released: 'Feb 19, 2026', nextRelease: 'Jul 31, 2026 (H1)',
+    currency: '€', unit: 'B', rev: 40.2, mcap: '€159B', tvSymbol: 'EURONEXT:SU', pe: '36', div: '1.8', released: 'Feb 19, 2026', nextRelease: 'Jul 31, 2026 (H1)',
     stats: [
       ['Revenue', '€40.2B', '+9% organic', 'pos'],
       ['EBITA margin', '18.7%', '+50 bps', 'pos'],
@@ -1277,7 +1802,7 @@ const COMPANIES = [
   // -------------------- 23. Givaudan FY 2025 --------------------
   {
     id: 'givn', title: 'Givaudan (GIVN)', period: 'FY 2025 · CHF',
-    currency: 'CHF ', unit: 'B', rev: 7.472, mcap: 'CHF 26B', tvSymbol: 'SIX:GIVN', pe: '35', released: 'Jan 22, 2026', nextRelease: 'Jul 17, 2026 (H1)',
+    currency: 'CHF ', unit: 'B', rev: 7.472, mcap: 'CHF 26B', tvSymbol: 'SIX:GIVN', pe: '35', div: '2.5', released: 'Jan 22, 2026', nextRelease: 'Jul 17, 2026 (H1)',
     stats: [
       ['Sales', 'CHF 7.47B', '+5.1% LFL', 'pos'],
       ['EBITDA margin', '23.4%', '', 'pos'],
@@ -1310,7 +1835,7 @@ const COMPANIES = [
   // -------------------- 24. Prysmian FY 2025 --------------------
   {
     id: 'pry', title: 'Prysmian (PRY.MI)', period: 'FY 2025 · EUR',
-    currency: '€', unit: 'B', rev: 19.65, mcap: '€26B', tvSymbol: 'MIL:PRY', pe: '35', released: 'Feb 26, 2026', nextRelease: 'Jul 30, 2026 (Q2)',
+    currency: '€', unit: 'B', rev: 19.65, mcap: '€26B', tvSymbol: 'MIL:PRY', pe: '35', div: '1.5', released: 'Feb 26, 2026', nextRelease: 'Jul 30, 2026 (Q2)',
     stats: [
       ['Revenue', '€19.65B', '+5.4% organic', 'pos'],
       ['EBITDA', '€2.40B', '14.2% margin', 'pos'],
@@ -1346,7 +1871,7 @@ const COMPANIES = [
   // -------------------- 25. NKT FY 2025 --------------------
   {
     id: 'nkt', title: 'NKT (NKT.CO)', period: 'FY 2025 · EUR',
-    currency: '€', unit: 'B', rev: 2.722, mcap: 'DKK 43B', tvSymbol: 'OMXCOP:NKT', pe: '28', released: 'Feb 27, 2026', nextRelease: 'Aug 28, 2026 (Q2)',
+    currency: '€', unit: 'B', rev: 2.722, mcap: 'DKK 43B', tvSymbol: 'OMXCOP:NKT', pe: '28', div: '0', released: 'Feb 27, 2026', nextRelease: 'Aug 28, 2026 (Q2)',
     stats: [
       ['Revenue (std metals)', '€2.72B', '+6% organic', 'pos'],
       ['EBITDA margin', '14.3%', '', 'pos'],
@@ -1380,7 +1905,7 @@ const COMPANIES = [
   // -------------------- 26. Belimo FY 2025 --------------------
   {
     id: 'bean', title: 'Belimo (BEAN)', period: 'FY 2025 \u00b7 CHF',
-    currency: 'CHF ', unit: 'B', rev: 1.121, mcap: 'CHF 10B', tvSymbol: 'SIX:BEAN', pe: '58', released: 'Mar 3, 2026', nextRelease: 'Aug 11, 2026 (H1)',
+    currency: 'CHF ', unit: 'B', rev: 1.121, mcap: 'CHF 10B', tvSymbol: 'SIX:BEAN', pe: '58', div: '1.0', released: 'Mar 3, 2026', nextRelease: 'Aug 11, 2026 (H1)',
     stats: [
       ['Revenue', 'CHF 1.12B', '+23% Y/Y', 'pos'],
       ['EBIT margin', '20.8%', '+1.6pp', 'pos'],
@@ -1414,7 +1939,7 @@ const COMPANIES = [
   // -------------------- 27. Quanta Services Q1 2026 --------------------
   {
     id: 'pwr', title: 'Quanta Services (PWR)', period: 'Q1 2026 \u00b7 USD',
-    currency: '$', unit: 'B', rev: 7.87, mcap: '$109B', tvSymbol: 'NYSE:PWR', pe: '107', released: 'May 1, 2026', nextRelease: 'Jul 30, 2026 (Q2)',
+    currency: '$', unit: 'B', rev: 7.87, mcap: '$109B', tvSymbol: 'NYSE:PWR', pe: '107', div: '0.1', released: 'May 1, 2026', nextRelease: 'Jul 30, 2026 (Q2)',
     stats: [
       ['Revenue', '$7.87B', '+27% Y/Y', 'pos'],
       ['Op margin', '4.3%', 'GAAP', 'pos'],
@@ -1538,16 +2063,91 @@ CUSTOM_STOCKS.forEach(s => {
   COMPANIES.push({
     id: s.id, title: s.title, period: 'Action ajout\u00e9e',
     currency: s.currency || '$', unit: 'B', rev: 0,
-    mcap: s.mcap || '', tvSymbol: s.tvSymbol, pe: s.pe || '',
+    mcap: s.mcap || '', tvSymbol: s.tvSymbol, pe: s.pe || '', div: s.div || '',
     custom: true, r40val: (s.r40 != null && s.r40 !== '') ? Number(s.r40) : null,
     nodes: [], links: [], stats: []
   });
 });
 
+// Map ticker → company domain for logo lookup (uses Google favicon service which is more reliable than Clearbit)
+const TICKER_DOMAIN = {
+  TSLA:'tesla.com', NVDA:'nvidia.com', GOOGL:'google.com', AMD:'amd.com', AAPL:'apple.com',
+  MSFT:'microsoft.com', AMZN:'amazon.com', ASML:'asml.com', ISRG:'intuitive.com',
+  PLTR:'palantir.com', SOFI:'sofi.com', MTCH:'matchgroup.com', PATH:'uipath.com',
+  LOGN:'logitech.com', BABA:'alibabagroup.com', '300750':'catl.com', CATL:'catl.com',
+  XPEV:'heyxpeng.com', JOBY:'jobyaviation.com',
+  SQN:'swissquote.com', ABBN:'new.abb.com', MC:'lvmh.com', SU:'se.com',
+  GIVN:'givaudan.com', PRY:'prysmiangroup.com', NKT:'nkt.com',
+  BEAN:'belimo.com', PWR:'quantaservices.com'
+};
+
+function logoUrl(domain, size) {
+  size = size || 128;
+  // Google favicon service — works for any reachable domain, returns a square favicon
+  return 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=' + size;
+}
+
+function cardLogoImg(c) {
+  if (!c || !c.tvSymbol) return '';
+  const sym = c.tvSymbol.split(':').pop().toUpperCase();
+  let domain = (typeof TICKER_DOMAIN !== 'undefined') ? TICKER_DOMAIN[sym] : null;
+  // Fallback for unknown tickers (typically custom stocks): try {ticker}.com
+  if (!domain && c.custom) domain = sym.toLowerCase() + '.com';
+  if (!domain) return '';
+  const url = (typeof logoUrl === 'function') ? logoUrl(domain, 64) : ('https://www.google.com/s2/favicons?domain='+domain+'&sz=64');
+  // onerror tries Clearbit as fallback then hides
+  return '<img class="card-logo" src="'+url+'" alt="'+sym+'" loading="lazy" '
+       + 'onerror="if(!this.dataset.f){this.dataset.f=1;this.src=\u0027https://logo.clearbit.com/'+domain+'\u0027}else{this.remove();}">';
+}
+
+// ====================================================================
+// Tag system: default tags + localStorage overrides
+// ====================================================================
+const TAG_DEFAULTS = {"tsla": ["Electricity"], "nvda": ["AI"], "googl": ["AI"], "amd": ["AI"], "aapl": ["AI"], "msft": ["AI"], "amzn": ["AI"], "asml": ["AI"], "isrg": [], "pltr": ["AI"], "sofi": [], "mtch": [], "path": ["AI"], "logn": [], "baba": ["AI"], "catl": ["Electricity"], "xpev": ["Electricity"], "joby": ["Electricity"], "sqn": [], "abbn": ["Electricity"], "mc": [], "su": ["Electricity"], "givn": [], "pry": ["Electricity"], "nkt": ["Electricity"], "bean": ["Electricity"], "pwr": ["Electricity"]};
+
+let TAG_OVERRIDES = {};
+try { TAG_OVERRIDES = JSON.parse(localStorage.getItem('dash.tagOverrides') || '{}'); } catch(e){}
+
+let STANDBY = [];
+
+// Global time range for all stock charts: '12M' | '60M' | 'ALL' (TradingView-native ranges)
+let STOCK_RANGE = '60M';
+try { STANDBY = JSON.parse(localStorage.getItem('dash.standby') || '[]'); } catch(e){ STANDBY = []; }
+function isStandby(id) { return STANDBY.indexOf(id) >= 0; }
+function setStandbyFlag(id, on) {
+  if (on && !isStandby(id)) STANDBY.push(id);
+  else if (!on) STANDBY = STANDBY.filter(x => x !== id);
+  localStorage.setItem('dash.standby', JSON.stringify(STANDBY));
+  updateStandbyCount();
+}
+function updateStandbyCount() {
+  const el = document.getElementById('standby-count');
+  if (el) el.textContent = STANDBY.length;
+}
+
+function getTags(c) {
+  if (!c) return [];
+  if (TAG_OVERRIDES.hasOwnProperty(c.id)) return TAG_OVERRIDES[c.id];
+  return TAG_DEFAULTS[c.id] || [];
+}
+
+function setTags(id, tags) {
+  TAG_OVERRIDES[id] = tags.slice();
+  localStorage.setItem('dash.tagOverrides', JSON.stringify(TAG_OVERRIDES));
+}
+
+function tagsHtml(c) {
+  const tags = getTags(c);
+  const pills = tags.map(t => '<span class="tag-pill tag-' + t + '">' + (t === 'AI' ? '🤖 AI' : '⚡ ' + t) + '</span>').join('');
+  const edit = '<button class="tag-edit-btn" data-tag-edit-id="' + c.id + '" title="Modifier les tags">+ tag</button>';
+  return '<div class="tag-row">' + pills + edit + '</div>';
+}
+
 COMPANIES.forEach(c => {
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = 'card' + (isStandby(c.id) ? ' is-standby' : '');
   card.dataset.id = c.id;
+  card.dataset.tags = getTags(c).join(',');
   const stats = c.stats.map(s => '<div class="stat"><span class="stat-label">'+s[0]+'</span><span class="stat-value">'+s[1]+'</span><span class="stat-yoy '+s[3]+'">'+s[2]+'</span></div>').join('');
   const footnote = c.footnote ? '<div class="footer-note">'+c.footnote+'</div>' : '';
   const mcapHtml = c.mcap ? '<span class="mcap-pill" title="Market cap">'+c.mcap+'</span>' : '';
@@ -1571,13 +2171,16 @@ COMPANIES.forEach(c => {
   } else {
     r40peHtml = '<span class="r40pe-pill" title="Rule of 40 \u00f7 P/E">R40/PE n/m</span>';
   }
-  const pillsHtml = '<div class="pill-row">'+mcapHtml+peHtml+r40Html+r40peHtml+'</div>';
+  // Dividend yield chip
+  const divHtml = (c.div != null && c.div !== '') ? '<span class="div-pill" title="Annual dividend yield">Div '+c.div+'%</span>' : '';
+  const pillsHtml = '<div class="pill-row">'+peHtml+r40peHtml+r40Html+mcapHtml+divHtml+'</div>';
+  const tagsHtmlStr = tagsHtml(c);
   const released = c.released ? '<span class="card-released" title="When these results were published">📅 Reported '+c.released+'</span>' : '';
   const nextRel = c.nextRelease ? '<span class="card-released" title="Next earnings release expected">⏭ Next: '+c.nextRelease+'</span>' : '';
   card.innerHTML =
     '<div class="card-header">' +
       '<div>' +
-        '<h2 class="card-title">'+c.title+(c.custom?'<span class="custom-badge">CUSTOM</span>':'')+'</h2>' +
+        '<h2 class="card-title">'+cardLogoImg(c)+'<span>'+c.title+(c.custom?'<span class="custom-badge">CUSTOM</span>':'')+'</span></h2>' +
         '<div class="card-period">'+c.period+'</div>' +
       '</div>' +
       '<div class="header-right">' +
@@ -1585,9 +2188,11 @@ COMPANIES.forEach(c => {
           pillsHtml +
           released +
           nextRel +
+          tagsHtmlStr +
         '</div>' +
+        '<button class="card-standby" data-standby-id="'+c.id+'" title="Mettre en standby">💤</button>' +
         '<button class="card-toggle" data-card-id="'+c.id+'" title="Cycle views: Sankey → Stock → Rule of 40">📈 Stock chart</button>' +
-        (c.custom ? '<button class="card-delete" data-del-id="'+c.id+'" title="Supprimer cette action">\u2715</button>' : '') +
+        '<button class="card-delete" data-del-id="'+c.id+'" title="Supprimer cette action de la grille">\u2715</button>' +
       '</div>' +
     '</div>' +
     '<div class="stats">'+stats+'</div>' +
@@ -1600,6 +2205,15 @@ COMPANIES.forEach(c => {
   cardState[c.id] = 'sankey';
   if (c.custom) { setTimeout(() => setCardView(c.id, 'stock'), 100); }
 });
+
+// Keep <title> and <h1> in sync with COMPANIES.length (built-in + custom)
+function updateCompanyCount() {
+  const n = COMPANIES.length;
+  const el = document.getElementById('company-count');
+  if (el) el.textContent = n;
+  document.title = 'Income Statement Sankey Dashboard \u2014 ' + n + ' Companies';
+}
+updateCompanyCount();
 
 // ====================================================================
 // Toggle: Sankey ↔ Stock chart (TradingView widget, lazy-loaded)
@@ -1650,8 +2264,15 @@ function epsAtDate(cardId, date) {
   return last;
 }
 
+// Cache: one Yahoo fetch per symbol per session (range switches reuse it)
+const DAILY_PRICE_CACHE = {};
+function fetchDailyPrices(yahooSymbol) {
+  if (!DAILY_PRICE_CACHE[yahooSymbol]) DAILY_PRICE_CACHE[yahooSymbol] = fetchDailyPricesRaw(yahooSymbol);
+  return DAILY_PRICE_CACHE[yahooSymbol];
+}
+
 // Fetch daily close prices from Yahoo Finance (with CORS-proxy fallback)
-async function fetchDailyPrices(yahooSymbol) {
+async function fetchDailyPricesRaw(yahooSymbol) {
   const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
     encodeURIComponent(yahooSymbol) + '?range=5y&interval=1d';
   const tryParse = (data) => {
@@ -1801,7 +2422,7 @@ function buildStockChart(cardId, company) {
   script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
   script.async = true;
   script.innerHTML = JSON.stringify({
-    "symbols": [[(company.tvSymbol || '') + "|60M"]],
+    "symbols": [[(company.tvSymbol || '') + "|" + STOCK_RANGE]],
     "chartOnly": true,
     "width": "100%",
     "height": "100%",
@@ -1849,7 +2470,7 @@ function buildStockChart(cardId, company) {
         connectgaps: false,
         hovertemplate: 'P/E TTM: <b>%{y:.0f}</b><extra></extra>'
       }];
-      Plotly.newPlot(peHost, peTrace, peLayoutBase(company), { displayModeBar: false, responsive: true });
+      Plotly.newPlot(peHost, peTrace, applyStockRange(peLayoutBase(company)), { displayModeBar: false, responsive: true });
       return;
     }
     // Compute daily PE from live price + quarterly EPS step function
@@ -1869,7 +2490,7 @@ function buildStockChart(cardId, company) {
       hovertemplate: 'P/E TTM: <b>%{y:.1f}</b><br>%{x}<extra></extra>',
       connectgaps: false
     }];
-    Plotly.newPlot(peHost, trace, peLayoutBase(company), { displayModeBar: false, responsive: true });
+    Plotly.newPlot(peHost, trace, applyStockRange(peLayoutBase(company)), { displayModeBar: false, responsive: true });
   });
 }
 
@@ -1951,6 +2572,16 @@ function getReleaseAnnotations(company) {
     });
   }
   return ann;
+}
+
+// Window a P/E-strip layout to the current global stock range
+function applyStockRange(layout) {
+  if (STOCK_RANGE === 'ALL') return layout;
+  const months = STOCK_RANGE === '12M' ? 12 : 60;
+  const end = new Date();
+  const start = new Date(); start.setMonth(start.getMonth() - months);
+  layout.xaxis.range = [start.toISOString().slice(0,10), end.toISOString().slice(0,10)];
+  return layout;
 }
 
 // Shared layout for the P/E strip
@@ -2043,18 +2674,622 @@ function syncGlobalButtons() {
   document.getElementById('btn-view-stock').classList.toggle('active', allStock);
   document.getElementById('btn-view-rule40').classList.toggle('active', allRule40);
 }
+
+// Global stock-chart time range: rebuild every loaded stock chart with the new range.
+// Prices come from DAILY_PRICE_CACHE, so only the TradingView iframes actually reload.
+document.querySelectorAll('.range-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.range === STOCK_RANGE) return;
+    STOCK_RANGE = btn.dataset.range;
+    document.querySelectorAll('.range-btn').forEach(b => b.classList.toggle('active', b === btn));
+    COMPANIES.forEach(c => {
+      const cont = document.getElementById('stock-' + c.id);
+      if (!cont || cont.dataset.loaded !== '1') return;
+      cont.dataset.loaded = '0';
+      cont.innerHTML = '';
+      if (cardState[c.id] === 'stock') buildStockChart(c.id, c);
+    });
+  });
+});
 document.getElementById('btn-view-sankey').addEventListener('click', () => setAllCards('sankey'));
 document.getElementById('btn-view-stock').addEventListener('click', () => setAllCards('stock'));
 document.getElementById('btn-view-rule40').addEventListener('click', () => setAllCards('rule40'));
 
+// ====================================================================
+// Scatter view: Rule of 40 vs P/E (global view across all companies)
+// ====================================================================
+let SCATTER_SCALE = 'zoom'; // 'zoom' or 'all'
+function buildScatterChart() {
+  // Index 8 in STOCK_DATES = 2025-06-30 (~1 year ago)
+  const YEAR_AGO_IDX = 8;
+  const pts = COMPANIES.map(c => {
+    const r40 = (typeof getRule40 === 'function') ? getRule40(c) : null;
+    const pe = (typeof getPENum === 'function') ? getPENum(c) : null;
+    if (r40 == null || pe == null || pe <= 0) return null;
+    // Compute 1-year-ago position from history (only for built-in companies)
+    let r40Old = null, peOld = null;
+    if (!c.custom) {
+      const rh = RULE40_HISTORY[c.id];
+      const sh = STOCK_HISTORY[c.id];
+      if (rh && rh[YEAR_AGO_IDX] != null) r40Old = rh[YEAR_AGO_IDX];
+      if (sh && sh[1] && sh[1][YEAR_AGO_IDX] != null && sh[1][YEAR_AGO_IDX] > 0) peOld = sh[1][YEAR_AGO_IDX];
+    }
+    return {
+      x: r40, y: pe,
+      label: (c.title || '').replace(/\s*\(.*\)/,''),
+      ticker: (c.tvSymbol || '').split(':').pop(),
+      r40, pe,
+      r40Old, peOld,
+      color: r40 >= 40 ? '#16a34a' : '#dc2626'
+    };
+  }).filter(p => p);
+
+  // Old positions (1 year ago, semi-transparent ghost markers)
+  const ptsOld = pts.filter(p => p.r40Old != null && p.peOld != null);
+  const oldTrace = {
+    x: ptsOld.map(p => p.r40Old),
+    y: ptsOld.map(p => p.peOld),
+    customdata: ptsOld.map(p => [p.label, p.ticker, p.r40Old, p.peOld]),
+    type: 'scatter',
+    mode: 'markers',
+    marker: {
+      size: 11,
+      color: ptsOld.map(p => p.r40Old >= 40 ? '#16a34a' : '#dc2626'),
+      line: { color: 'white', width: 1 },
+      opacity: 0.30,
+      symbol: 'circle-open'
+    },
+    name: '1 an plus tôt',
+    hovertemplate: '<b>%{customdata[0]} (%{customdata[1]})</b> — il y a 1 an<br>R40: %{x} · P/E: %{y}<extra></extra>',
+    showlegend: false
+  };
+  const trace = {
+    x: pts.map(p => p.x),
+    y: pts.map(p => p.y),
+    text: pts.map(p => p.ticker),
+    customdata: pts.map(p => [p.label, p.r40, p.pe]),
+    type: 'scatter',
+    mode: 'markers+text',
+    textposition: 'top center',
+    textfont: { size: 10, color: '#0a2540' },
+    marker: {
+      size: 14,
+      color: pts.map(p => p.color),
+      line: { color: 'white', width: 1.5 },
+      opacity: 0.85
+    },
+    name: 'Actuel',
+    hovertemplate: '<b>%{customdata[0]}</b> (%{text}) — aujourd\u2019hui<br>R40: %{x} · P/E: %{y}<extra></extra>',
+    showlegend: false
+  };
+  // Lines from old to new position (very faint, color-matched)
+  const trajectories = ptsOld.map(p => ({
+    type: 'line',
+    xref: 'x', yref: 'y',
+    x0: p.r40Old, y0: p.peOld,
+    x1: p.x, y1: p.y,
+    line: { color: p.color, width: 1, dash: 'dot' },
+    opacity: 0.35,
+    layer: 'below'
+  }));
+
+  // Identify outliers above the zoom window so we can flag them with arrows
+  // Zoom mode: focuses on ~85% of companies (excludes Tesla PE 355, PLTR PE 143, etc.)
+  // All mode: full range showing every company including outliers
+  let ZOOM_X, ZOOM_Y;
+  if (SCATTER_SCALE === 'all') {
+    // Compute actual data range with a margin
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    ZOOM_X = [Math.min(-10, Math.min(...xs) - 10), Math.max(140, Math.max(...xs) + 10)];
+    ZOOM_Y = [0, Math.max(400, Math.max(...ys) + 30)];
+  } else {
+    ZOOM_X = [-20, 110];
+    ZOOM_Y = [0, 80];
+  }
+  const outliers = (SCATTER_SCALE === 'zoom')
+    ? pts.filter(p => p.y > ZOOM_Y[1] || p.x > ZOOM_X[1] || p.x < ZOOM_X[0])
+    : [];
+  const layout = {
+    margin: { l: 75, r: 30, t: 30, b: 65 },
+    xaxis: {
+      title: { text: '<b>Rule of 40 (%)</b>', font: { size: 16, color: '#0a2540' }, standoff: 18 },
+      gridcolor: '#eef1f6', zeroline: true, zerolinecolor: '#94a3b8',
+      tickfont: { size: 12 },
+      range: ZOOM_X
+    },
+    yaxis: {
+      title: { text: '<b>P/E ratio (TTM)</b> — \u00e9chelle invers\u00e9e (haut = pas cher)', font: { size: 16, color: '#0a2540' }, standoff: 18 },
+      gridcolor: '#eef1f6', zeroline: false,
+      tickfont: { size: 12 },
+      range: [ZOOM_Y[1], ZOOM_Y[0]] // inverted: high PE at bottom
+    },
+    plot_bgcolor: 'white', paper_bgcolor: 'white',
+    showlegend: false,
+    shapes: [
+      // Sweet spot quadrant: R40 >= 40 AND P/E <= 30 (light green)
+      { type: 'rect', xref: 'x', yref: 'y',
+        x0: 40, x1: ZOOM_X[1], y0: 0, y1: 30,
+        fillcolor: 'rgba(22,163,74,0.10)', line: { width: 0 }, layer: 'below' },
+      // Worst quadrant: R40 < 40 AND P/E > 30 (light red)
+      { type: 'rect', xref: 'x', yref: 'y',
+        x0: ZOOM_X[0], x1: 40, y0: 30, y1: ZOOM_Y[1],
+        fillcolor: 'rgba(220,38,38,0.08)', line: { width: 0 }, layer: 'below' },
+      // Vertical line at R40 = 40 (threshold)
+      { type: 'line', xref: 'x', yref: 'paper', x0: 40, x1: 40, y0: 0, y1: 1,
+        line: { color: '#16a34a', width: 1.5, dash: 'dash' } },
+      // Horizontal line at P/E = 30
+      { type: 'line', xref: 'paper', yref: 'y', x0: 0, x1: 1, y0: 30, y1: 30,
+        line: { color: '#0891b2', width: 1.5, dash: 'dash' } }
+    ].concat(trajectories),
+    annotations: [].concat(outliers.map(p => {
+      const isHighPE = p.y > ZOOM_Y[1];
+      const isHighR40 = p.x > ZOOM_X[1];
+      // With Y axis inverted: high-PE outliers visually at bottom; point arrow DOWN (ay positive)
+      const ax_off = 0, ay_off = isHighPE ? 28 : -28;
+      const arrowTxt = isHighPE ? '\u2193' : '\u2191';
+      return {
+        x: Math.max(ZOOM_X[0]+5, Math.min(ZOOM_X[1]-5, p.x)),
+        y: isHighPE ? ZOOM_Y[1] - 3 : (isHighR40 ? p.y : ZOOM_Y[0] + 3),
+        xref: 'x', yref: 'y',
+        ax: ax_off, ay: ay_off,
+        text: arrowTxt + ' ' + p.ticker + ' (PE ' + p.pe + ', R40 ' + p.r40 + ')',
+        showarrow: true, arrowhead: 3, arrowcolor: p.color,
+        font: { color: p.color, size: 11, weight: 700 },
+        bgcolor: 'rgba(255,255,255,0.85)', borderpad: 2
+      };
+    }))
+  };
+  Plotly.newPlot('scatter-chart', [oldTrace, trace], layout, { displayModeBar: false, responsive: true });
+}
+
+// Scatter scale toggle wiring
+document.querySelectorAll('.scale-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const scale = btn.dataset.scale;
+    if (scale === SCATTER_SCALE) return;
+    SCATTER_SCALE = scale;
+    document.querySelectorAll('.scale-btn').forEach(b => b.classList.toggle('active', b.dataset.scale === scale));
+    // Re-render scatter chart with new scale
+    buildScatterChart();
+    setTimeout(() => { try { Plotly.Plots.resize(document.getElementById('scatter-chart')); } catch(e){} }, 60);
+  });
+});
+
+function setScatterView(active) {
+  const grid = document.getElementById('grid');
+  const sv = document.getElementById('scatter-view');
+  if (active) {
+    grid.classList.add('hidden-for-scatter');
+    sv.classList.add('active');
+    buildScatterChart();
+    setTimeout(() => { try { Plotly.Plots.resize(document.getElementById('scatter-chart')); } catch(e){} }, 60);
+    // Update button states
+    document.getElementById('btn-view-sankey').classList.remove('active');
+    document.getElementById('btn-view-stock').classList.remove('active');
+    document.getElementById('btn-view-rule40').classList.remove('active');
+    document.getElementById('btn-view-scatter').classList.add('active');
+  } else {
+    grid.classList.remove('hidden-for-scatter');
+    sv.classList.remove('active');
+    document.getElementById('btn-view-scatter').classList.remove('active');
+  }
+}
+
+
+function addLogosToInsights() {
+  const insights = document.querySelectorAll('#analysis-view .insight');
+  let added = 0;
+  insights.forEach(insight => {
+    if (insight.dataset.logoAdded) return;
+    const firstTicker = insight.querySelector('.ticker');
+    if (!firstTicker) return;
+    const t = firstTicker.textContent.trim().toUpperCase();
+    const domain = TICKER_DOMAIN[t];
+    if (!domain) return;
+    const img = document.createElement('img');
+    img.src = logoUrl(domain, 128);
+    img.className = 'insight-logo';
+    img.alt = t;
+    img.loading = 'lazy';
+    img.onerror = function() {
+      // Fallback: try Clearbit as secondary
+      if (!this.dataset.fallbackTried) {
+        this.dataset.fallbackTried = '1';
+        this.src = 'https://logo.clearbit.com/' + domain;
+      } else {
+        // Both failed → remove image, revert to ◆
+        this.remove();
+        delete insight.dataset.hasLogo;
+      }
+    };
+    img.onload = function() {
+      insight.dataset.hasLogo = '1';
+    };
+    insight.insertBefore(img, insight.firstChild);
+    insight.dataset.logoAdded = '1';
+    added++;
+  });
+  console.log('[Logos] Processed '+insights.length+' insights, added '+added+' logo requests');
+}
+
+// Eagerly load logos on page load (so they're ready when user opens Analysis view)
+window.addEventListener('load', () => setTimeout(addLogosToInsights, 200));
+
+function renderTimeline() {
+  const host = document.getElementById('timeline-container');
+  if (!host) return;
+  // Build 6 columns starting from current month
+  const now = new Date();
+  const months = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    months.push({
+      key: d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'),
+      label: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','') + ' ' + d.getFullYear(),
+      isCurrent: i === 0,
+      entries: []
+    });
+  }
+  // Parse nextRelease and bucket each company into the right month
+  COMPANIES.forEach(c => {
+    if (!c.nextRelease || c.custom) return;
+    const m = c.nextRelease.match(/([A-Za-z]+\s+\d+,?\s*\d{4})/);
+    if (!m) return;
+    const d = new Date(m[1]);
+    if (isNaN(d.getTime())) return;
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const col = months.find(x => x.key === key);
+    if (col) col.entries.push({ company: c, date: d });
+  });
+  months.forEach(m => m.entries.sort((a,b) => a.date - b.date));
+  let html = '<div class="timeline-grid">';
+  months.forEach(m => {
+    html += '<div class="timeline-col' + (m.isCurrent ? ' has-today' : '') + '">';
+    html += '<div class="timeline-month">' + m.label + '</div>';
+    if (m.entries.length === 0) {
+      html += '<div class="timeline-empty">—</div>';
+    } else {
+      m.entries.forEach(e => {
+        const sym = (e.company.tvSymbol || '').split(':').pop();
+        const domain = TICKER_DOMAIN[sym];
+        const logo = domain ? '<img src="' + logoUrl(domain, 32) + '" alt="" onerror="this.style.display=\'none\'">' : '';
+        const day = e.date.getDate();
+        html += '<div class="timeline-entry">' + logo + '<span class="ticker">' + sym + '</span><span class="day">· '+day+'</span></div>';
+      });
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  host.innerHTML = html;
+}
+
+function renderQuadrantTables() {
+  const sweetHost = document.getElementById('sweet-spot-table');
+  const watchHost = document.getElementById('watch-zone-table');
+  if (!sweetHost && !watchHost) return;
+
+  const tableRow = (c) => {
+    const sym = (c.tvSymbol || '').split(':').pop();
+    const domain = TICKER_DOMAIN[sym];
+    const logo = domain ? '<img src="' + logoUrl(domain, 48) + '" alt="" class="qlogo" onerror="this.style.visibility=\'hidden\'">' : '<div></div>';
+    const r40 = getRule40(c);
+    const pe = getPENum(c);
+    const r40pe = (r40 != null && pe > 0) ? (r40/pe).toFixed(2) : 'n/m';
+    const r40Color = r40 != null && r40 >= 40 ? 'good' : 'bad';
+    const peColor = pe > 0 && pe <= 30 ? 'good' : 'bad';
+    const ratioColor = (r40 != null && pe > 0 && r40/pe >= 1) ? 'good' : 'bad';
+    const name = (c.title || '').replace(/\s*\(.*\)/, '');
+    return logo
+      + '<div class="qname">' + name + '<span class="ticker">'+sym+'</span></div>'
+      + '<div class="qmetric ' + r40Color + '">R40 ' + (r40 != null ? r40 : 'n/m') + '</div>'
+      + '<div class="qmetric ' + peColor + '">P/E ' + (pe > 0 ? pe : 'n/m') + '</div>'
+      + '<div class="qmetric ' + ratioColor + '">' + r40pe + '</div>';
+  };
+
+  // Sweet spot: R40 >= 40 AND P/E <= 30
+  if (sweetHost) {
+    const sweet = COMPANIES.filter(c => {
+      const r40 = getRule40(c), pe = getPENum(c);
+      return r40 != null && r40 >= 40 && pe > 0 && pe <= 30;
+    }).sort((a,b) => (getRule40(b)/getPENum(b)) - (getRule40(a)/getPENum(a)));
+
+    let html = '<div class="quadrant-table green">';
+    html += '<div></div><div class="qh">Société</div><div class="qh" style="text-align:right">Rule of 40</div><div class="qh" style="text-align:right">P/E TTM</div><div class="qh" style="text-align:right">R40/P/E</div>';
+    sweet.forEach(c => { html += tableRow(c); });
+    if (!sweet.length) html += '<div style="grid-column:1/-1;color:var(--text-muted);text-align:center;padding:10px">Aucune société ne correspond actuellement.</div>';
+    html += '</div>';
+    sweetHost.innerHTML = html;
+  }
+
+  // Watch zone: high P/E (>50) AND low quality (R40 < 40 OR R40/PE < 0.5)
+  if (watchHost) {
+    const watch = COMPANIES.filter(c => {
+      const r40 = getRule40(c), pe = getPENum(c);
+      if (pe <= 0 || pe < 50) return false;
+      if (r40 == null) return true;
+      return r40 < 40 || (r40/pe) < 0.5;
+    }).sort((a,b) => getPENum(b) - getPENum(a));
+
+    let html = '<div class="quadrant-table red">';
+    html += '<div></div><div class="qh">Société</div><div class="qh" style="text-align:right">Rule of 40</div><div class="qh" style="text-align:right">P/E TTM</div><div class="qh" style="text-align:right">R40/P/E</div>';
+    watch.forEach(c => { html += tableRow(c); });
+    if (!watch.length) html += '<div style="grid-column:1/-1;color:var(--text-muted);text-align:center;padding:10px">Aucune société ne correspond actuellement.</div>';
+    html += '</div>';
+    watchHost.innerHTML = html;
+  }
+}
+
+function renderCustomStocksSection() {
+  const host = document.getElementById('custom-stocks-section');
+  if (!host) return;
+  const custom = COMPANIES.filter(c => c.custom);
+  if (!custom.length) { host.innerHTML = ''; return; }
+  let html = '<h3>\u2795 Actions ajout\u00e9es manuellement (' + custom.length + ')</h3>';
+  custom.forEach(c => {
+    const sym = (c.tvSymbol || '').split(':').pop().toUpperCase();
+    const peNum = parseFloat(c.pe);
+    const r40 = c.r40val;
+    const r40pe = (r40 != null && peNum > 0) ? (r40/peNum).toFixed(2) : 'n/m';
+    const parts = [];
+    if (c.mcap) parts.push('Market cap: <b>'+c.mcap+'</b>');
+    if (c.pe) parts.push('P/E: <b>'+c.pe+'</b>');
+    if (r40 != null) parts.push('Rule of 40: <b>'+r40+'</b>');
+    if (r40 != null && peNum > 0) parts.push('R40/PE: <b>'+r40pe+'</b>');
+    if (c.div) parts.push('Dividende: <b>'+c.div+'%</b>');
+    const cls = (r40 != null && r40 >= 40 && peNum > 0 && peNum <= 30) ? 'green'
+              : (r40 != null && r40 < 40 && peNum > 30) ? 'red' : '';
+    html += '<div class="insight '+cls+'"><span class="ticker">'+sym+'</span> ('+c.title.replace(/\s*\(.*\)/,'')+') \u2014 ' + (parts.join(' \u00b7 ') || 'données limitées') + '.</div>';
+  });
+  host.innerHTML = html;
+}
+
+function setAnalysisView(active) {
+  const grid = document.getElementById('grid');
+  const av = document.getElementById('analysis-view');
+  if (active) {
+    grid.classList.add('hidden-for-analysis');
+    av.classList.add('active');
+    setScatterView(false); // ensure scatter is hidden
+    renderCustomStocksSection();
+    renderTimeline();
+    renderQuadrantTables();
+    addLogosToInsights();
+    document.getElementById('btn-view-sankey').classList.remove('active');
+    document.getElementById('btn-view-stock').classList.remove('active');
+    document.getElementById('btn-view-rule40').classList.remove('active');
+    document.getElementById('btn-view-analysis').classList.add('active');
+  } else {
+    grid.classList.remove('hidden-for-analysis');
+    av.classList.remove('active');
+    document.getElementById('btn-view-analysis').classList.remove('active');
+  }
+}
+
+// ====================================================================
+// Compare view: single chart with all companies' R40/PE, R40 or P/E evolution
+// ====================================================================
+let COMPARE_METRIC = 'r40pe';
+let COMPARE_TAG_FILTER = '';
+
+function buildCompareChart() {
+  const host = document.getElementById('compare-chart');
+  if (!host) return;
+  const dates = STOCK_DATES;
+  const traces = [];
+  let total = 0;
+  COMPANIES.forEach(c => {
+    if (c.custom) return;
+    if (COMPARE_TAG_FILTER) {
+      const tags = getTags(c);
+      if (tags.indexOf(COMPARE_TAG_FILTER) < 0) return;
+    }
+    const sh = STOCK_HISTORY[c.id];
+    const rh = RULE40_HISTORY[c.id];
+    if (!sh || !rh) return;
+    let yVals;
+    if (COMPARE_METRIC === 'pe') {
+      yVals = sh[1].map(v => (v != null && v > 0) ? v : null);
+    } else if (COMPARE_METRIC === 'r40') {
+      yVals = rh.map(v => (v != null) ? v : null);
+    } else { // r40pe
+      yVals = rh.map((r, i) => {
+        const p = sh[1][i];
+        if (r == null || p == null || p <= 0) return null;
+        return r / p;
+      });
+    }
+    // Skip if all values are null
+    if (yVals.every(v => v == null)) return;
+    const sym = (c.tvSymbol || '').split(':').pop();
+    const cleanName = (c.title || '').replace(/\s*\(.*\)/, '');
+    traces.push({
+      x: dates, y: yVals,
+      name: sym,
+      type: 'scatter', mode: 'lines',
+      line: { width: 1.8, shape: 'spline' },
+      hovertemplate: '<b>'+cleanName+' ('+sym+')</b><br>'+
+        (COMPARE_METRIC === 'r40pe' ? 'R40/P/E' : (COMPARE_METRIC === 'r40' ? 'Rule of 40' : 'P/E TTM'))+
+        ': %{y:.2f}<br>%{x}<extra></extra>',
+      connectgaps: false
+    });
+    total++;
+  });
+  const yTitle = COMPARE_METRIC === 'r40pe' ? 'R40 / P/E ratio (qualité par unité de valorisation)'
+              : (COMPARE_METRIC === 'r40' ? 'Rule of 40 (%)' : 'P/E ratio (TTM)');
+  const layout = {
+    margin: { l: 60, r: 16, t: 14, b: 50 },
+    xaxis: { type: 'date', tickformat: "%b '%y", gridcolor: '#eef1f6' },
+    yaxis: { title: { text: yTitle, font: { size: 12 } }, gridcolor: '#eef1f6', zeroline: true, zerolinecolor: '#cbd5e1' },
+    showlegend: true,
+    legend: { font: { size: 10 }, itemwidth: 30 },
+    hovermode: 'closest',
+    plot_bgcolor: 'white', paper_bgcolor: 'white'
+  };
+  // For PE, optionally cap y range (since some are extreme)
+  if (COMPARE_METRIC === 'pe') {
+    layout.yaxis.range = [0, 150];
+    layout.yaxis.title.text = 'P/E ratio (TTM, capé à 150)';
+  }
+  Plotly.newPlot(host, traces, layout, { displayModeBar: false, responsive: true });
+}
+
+function setCompareView(active) {
+  const grid = document.getElementById('grid');
+  const cv = document.getElementById('compare-view');
+  if (active) {
+    grid.classList.add('hidden-for-compare');
+    cv.classList.add('active');
+    setScatterView(false);
+    setAnalysisView(false);
+    buildCompareChart();
+    setTimeout(() => { try { Plotly.Plots.resize(document.getElementById('compare-chart')); } catch(e){} }, 60);
+    ['btn-view-sankey','btn-view-stock','btn-view-rule40','btn-view-scatter','btn-view-analysis']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+    document.getElementById('btn-view-compare').classList.add('active');
+  } else {
+    grid.classList.remove('hidden-for-compare');
+    cv.classList.remove('active');
+    document.getElementById('btn-view-compare').classList.remove('active');
+  }
+}
+
+document.getElementById('btn-view-compare').addEventListener('click', () => setCompareView(true));
+
+// Metric selector buttons inside compare-view
+document.querySelectorAll('.metric-btn[data-metric]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const m = btn.dataset.metric;
+    if (m === COMPARE_METRIC) return;
+    COMPARE_METRIC = m;
+    document.querySelectorAll('.metric-btn[data-metric]').forEach(b => b.classList.toggle('active', b.dataset.metric === m));
+    buildCompareChart();
+  });
+});
+
+document.querySelectorAll('.compare-tag-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.tag || '';
+    if (t === COMPARE_TAG_FILTER) return;
+    COMPARE_TAG_FILTER = t;
+    document.querySelectorAll('.compare-tag-btn').forEach(b => b.classList.toggle('active', (b.dataset.tag || '') === t));
+    buildCompareChart();
+  });
+});
+
+document.getElementById('btn-view-scatter').addEventListener('click', () => { setAnalysisView(false); setScatterView(true); });
+document.getElementById('btn-view-analysis').addEventListener('click', () => setAnalysisView(true));
+['btn-view-sankey', 'btn-view-stock', 'btn-view-rule40'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('click', () => { setScatterView(false); setAnalysisView(false); setCompareView(false); });
+});
+
 // Refresh: reload the page (re-fetches Plotly CDN, TradingView widgets, etc.)
-document.getElementById('btn-refresh').addEventListener('click', () => {
-  // Add a tiny visual feedback before reload
+// ====================================================================
+// Soft refresh: re-fetch live PE/price from Yahoo for all tickers
+// (doesn't reload page; just updates chips + reloads stock charts if open)
+// ====================================================================
+async function fetchYahooQuote(symbols) {
+  // Yahoo v7 quote endpoint - batched
+  const url = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=' + symbols.join(',');
+  try {
+    const r = await fetch(url, { mode: 'cors' });
+    if (r.ok) {
+      const d = await r.json();
+      return d.quoteResponse && d.quoteResponse.result || [];
+    }
+  } catch(e){}
+  // CORS-proxy fallback
+  try {
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    const r = await fetch(proxyUrl);
+    if (r.ok) {
+      const d = await r.json();
+      return d.quoteResponse && d.quoteResponse.result || [];
+    }
+  } catch(e){}
+  return [];
+}
+
+function updateLastRefreshTimestamp() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const el = document.getElementById('last-updated');
+  if (el) el.textContent = '⟳ '+hh+':'+mm;
+}
+
+async function softRefresh() {
   const btn = document.getElementById('btn-refresh');
   btn.textContent = '⏳ Refreshing…';
   btn.disabled = true;
-  setTimeout(() => window.location.reload(), 100);
-});
+  // Collect all yahoo tickers
+  const tickers = [];
+  const cardByTicker = {};
+  COMPANIES.forEach(c => {
+    const y = tvToYahoo(c.tvSymbol);
+    if (y) { tickers.push(y); cardByTicker[y] = c; }
+  });
+  // Fetch in chunks of 20
+  const all = [];
+  for (let i = 0; i < tickers.length; i += 20) {
+    const batch = tickers.slice(i, i+20);
+    const res = await fetchYahooQuote(batch);
+    all.push(...res);
+  }
+  // Update PE chip + price-derived info for each company
+  let updated = 0;
+  all.forEach(q => {
+    const c = cardByTicker[q.symbol];
+    if (!c) return;
+    // trailingPE
+    if (q.trailingPE != null && q.trailingPE > 0 && q.trailingPE < 1000) {
+      c.pe = q.trailingPE.toFixed(0);
+      updated++;
+    } else if (q.trailingPE != null && q.trailingPE <= 0) {
+      c.pe = 'n/m';
+    }
+    // dividend yield
+    if (q.trailingAnnualDividendYield != null) {
+      c.div = (q.trailingAnnualDividendYield * 100).toFixed(2);
+    } else if (q.dividendYield != null) {
+      c.div = q.dividendYield.toFixed(2);
+    }
+  });
+  // Re-render all card headers (chips) — simplest: re-render entire cards
+  // Hide loading state, persist live values
+  btn.textContent = '🔄 Refresh';
+  btn.disabled = false;
+  updateLastRefreshTimestamp();
+  // Soft-update chips in DOM
+  COMPANIES.forEach(c => {
+    const card = document.querySelector('.card[data-id="'+c.id+'"]');
+    if (!card) return;
+    const pillRow = card.querySelector('.pill-row');
+    if (!pillRow) return;
+    // Rebuild pill HTML
+    const mcapH = c.mcap ? '<span class="mcap-pill" title="Market cap">'+c.mcap+'</span>' : '';
+    const peH = c.pe ? '<span class="pe-pill" title="P/E ratio (TTM) - live">P/E '+c.pe+'</span>' : '';
+    const r40Hist = (typeof RULE40_HISTORY !== 'undefined') ? RULE40_HISTORY[c.id] : null;
+    const r40V = c.custom ? c.r40val : (r40Hist ? r40Hist[r40Hist.length - 1] : null);
+    let r40H = '';
+    if (r40V != null) {
+      const cls = r40V >= 40 ? 'r40-good' : 'r40-bad';
+      r40H = '<span class="r40-pill '+cls+'">R40 '+r40V+'</span>';
+    } else {
+      r40H = '<span class="r40-pill r40-na">R40 n/m</span>';
+    }
+    const peNum = (c.pe && !/n\/?m/i.test(c.pe)) ? parseFloat(c.pe) : null;
+    let r40peH = '<span class="r40pe-pill">R40/PE ' + ((r40V != null && peNum != null && peNum > 0) ? (r40V / peNum).toFixed(2) : 'n/m') + '</span>';
+    const divH = (c.div != null && c.div !== '') ? '<span class="div-pill" title="Annual dividend yield - live">Div '+c.div+'%</span>' : '';
+    pillRow.innerHTML = peH + r40peH + r40H + mcapH + divH;
+  });
+  console.log('[Refresh] Updated '+updated+' tickers');
+}
+
+document.getElementById('btn-refresh').addEventListener('click', softRefresh);
+// Initial fetch on page load
+setTimeout(softRefresh, 800);
 
 // ====================================================================
 // Dark / light theme toggle
@@ -2166,7 +3401,8 @@ const SORT_FNS = {
   rev:   c => -getRevUsd(c),
   mcap:  c => -parseMcap(c.mcap),
   r40:   c => { const v = getRule40(c); return v != null ? -v : Number.POSITIVE_INFINITY; },
-  r40pe: c => { const v = getRule40(c), pe = getPENum(c); return (v != null && pe > 0) ? -(v / pe) : Number.POSITIVE_INFINITY; }
+  r40pe: c => { const v = getRule40(c), pe = getPENum(c); return (v != null && pe > 0) ? -(v / pe) : Number.POSITIVE_INFINITY; },
+  div: c => { const d = parseFloat(c.div); return isNaN(d) ? Number.POSITIVE_INFINITY : -d; }
 };
 
 const layoutState = {
@@ -2215,6 +3451,119 @@ function applyLayout() {
 }
 
 document.getElementById('btn-height-dec').addEventListener('click', () => { if (layoutState.heightIdx > 0) { layoutState.heightIdx--; applyLayout(); } });
+
+// ===== Tag filter handlers =====
+let CURRENT_TAG_FILTER = '';
+function applyTagFilter() {
+  const grid = document.getElementById('grid');
+  document.querySelectorAll('.grid > .card').forEach(card => {
+    const tags = (card.dataset.tags || '').split(',').filter(x => x);
+    const match = !CURRENT_TAG_FILTER || tags.indexOf(CURRENT_TAG_FILTER) >= 0;
+    card.dataset.tagged = match ? '1' : '0';
+  });
+  if (CURRENT_TAG_FILTER) grid.classList.add('hidden-by-tag');
+  else grid.classList.remove('hidden-by-tag');
+  // Update count
+  const visible = Array.from(document.querySelectorAll('.grid > .card')).filter(c => c.dataset.tagged !== '0').length;
+  const el = document.getElementById('company-count');
+  if (el) el.textContent = CURRENT_TAG_FILTER ? (visible + ' / ' + COMPANIES.length) : COMPANIES.length;
+}
+document.querySelectorAll('.tag-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    CURRENT_TAG_FILTER = btn.dataset.tag || '';
+    document.querySelectorAll('.tag-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+    applyTagFilter();
+  });
+});
+
+// ===== Tag editor (delegation) =====
+const tagModal = document.getElementById('tag-modal');
+let TAG_EDIT_CURRENT = null;
+document.getElementById('grid').addEventListener('click', e => {
+  const btn = e.target.closest('.tag-edit-btn');
+  if (!btn) return;
+  const id = btn.dataset.tagEditId;
+  const c = COMPANIES.find(x => x.id === id);
+  if (!c) return;
+  TAG_EDIT_CURRENT = id;
+  document.getElementById('tag-modal-company').textContent = c.title;
+  const cur = getTags(c);
+  document.getElementById('tag-AI').checked = cur.indexOf('AI') >= 0;
+  document.getElementById('tag-Electricity').checked = cur.indexOf('Electricity') >= 0;
+  tagModal.classList.add('open');
+});
+document.getElementById('tag-cancel').addEventListener('click', () => tagModal.classList.remove('open'));
+tagModal.addEventListener('click', e => { if (e.target === tagModal) tagModal.classList.remove('open'); });
+document.getElementById('tag-save').addEventListener('click', () => {
+  if (!TAG_EDIT_CURRENT) return;
+  const newTags = [];
+  if (document.getElementById('tag-AI').checked) newTags.push('AI');
+  if (document.getElementById('tag-Electricity').checked) newTags.push('Electricity');
+  setTags(TAG_EDIT_CURRENT, newTags);
+  // Refresh card's tag display + data-tags attribute
+  const card = document.querySelector('.card[data-id="' + TAG_EDIT_CURRENT + '"]');
+  if (card) {
+    card.dataset.tags = newTags.join(',');
+    const oldRow = card.querySelector('.tag-row');
+    if (oldRow) oldRow.outerHTML = tagsHtml(COMPANIES.find(x => x.id === TAG_EDIT_CURRENT));
+  }
+  applyTagFilter();
+  tagModal.classList.remove('open');
+});
+
+// Apply initial tag filter on load (no-op if no filter is set)
+applyTagFilter();
+
+// ===== Standby handlers =====
+updateStandbyCount();
+
+document.getElementById('grid').addEventListener('click', e => {
+  const btn = e.target.closest('.card-standby');
+  if (!btn) return;
+  const id = btn.dataset.standbyId;
+  setStandbyFlag(id, true);
+  const card = document.querySelector('.card[data-id="' + id + '"]');
+  if (card) card.classList.add('is-standby');
+});
+
+const standbyModal = document.getElementById('standby-modal');
+function renderStandbyList() {
+  const host = document.getElementById('standby-list');
+  if (!host) return;
+  if (STANDBY.length === 0) {
+    host.innerHTML = '<div class="standby-empty">Aucune société en standby.</div>';
+    return;
+  }
+  let html = '';
+  STANDBY.forEach(id => {
+    const cc = COMPANIES.find(x => x.id === id);
+    if (!cc) return;
+    const sym = (cc.tvSymbol || '').split(':').pop();
+    const domain = TICKER_DOMAIN[sym];
+    const logo = domain ? '<img src="' + logoUrl(domain, 32) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div style="width:22px"></div>';
+    html += '<div class="standby-row">' + logo + '<div class="name">' + cc.title + '</div>' + '<button class="reactivate" data-reactivate-id="' + id + '">Réactiver</button></div>';
+  });
+  host.innerHTML = html;
+}
+
+document.getElementById('btn-manage-standby').addEventListener('click', () => {
+  renderStandbyList();
+  standbyModal.classList.add('open');
+});
+document.getElementById('standby-close').addEventListener('click', () => standbyModal.classList.remove('open'));
+standbyModal.addEventListener('click', e => { if (e.target === standbyModal) standbyModal.classList.remove('open'); });
+
+document.getElementById('standby-list').addEventListener('click', e => {
+  const btn = e.target.closest('.reactivate');
+  if (!btn) return;
+  const id = btn.dataset.reactivateId;
+  setStandbyFlag(id, false);
+  const card = document.querySelector('.card[data-id="' + id + '"]');
+  if (card) card.classList.remove('is-standby');
+  renderStandbyList();
+});
+
+
 document.getElementById('btn-height-inc').addEventListener('click', () => { if (layoutState.heightIdx < HEIGHT_OPTIONS.length - 1) { layoutState.heightIdx++; applyLayout(); } });
 document.getElementById('btn-cols-dec').addEventListener('click', () => { if (layoutState.cols > COLS_MIN) { layoutState.cols--; applyLayout(); } });
 document.getElementById('btn-cols-inc').addEventListener('click', () => { if (layoutState.cols < COLS_MAX) { layoutState.cols++; applyLayout(); } });
@@ -2234,6 +3583,7 @@ document.getElementById('add-confirm').addEventListener('click', () => {
   const ticker = document.getElementById('add-ticker').value.trim().toUpperCase();
   const pe = document.getElementById('add-pe').value.trim();
   const r40 = document.getElementById('add-r40').value.trim();
+  const div = document.getElementById('add-div').value.trim();
   const mcap = document.getElementById('add-mcap').value.trim();
   if (!name || !ticker) { alert('Nom et ticker sont obligatoires.'); return; }
   if (ticker.indexOf(':') === -1) { alert('Le ticker doit \u00eatre au format EXCHANGE:TICKER (ex: NASDAQ:META).'); return; }
@@ -2244,7 +3594,7 @@ document.getElementById('add-confirm').addEventListener('click', () => {
     id: 'custom_' + sym + '_' + Date.now().toString(36),
     title: name + ' (' + sym + ')',
     tvSymbol: ticker,
-    pe: pe, r40: r40, mcap: mcap,
+    pe: pe, r40: r40, mcap: mcap, div: div,
     currency: ccyMap[exch] || '$'
   };
   let saved = [];
@@ -2258,17 +3608,26 @@ document.getElementById('add-confirm').addEventListener('click', () => {
   window.location.reload();
 });
 
-// Delete custom stock (event delegation)
+// Delete handler — custom = fully remove ; built-in = add to standby (recoverable)
 document.getElementById('grid').addEventListener('click', e => {
   const btn = e.target.closest('.card-delete');
   if (!btn) return;
   const id = btn.dataset.delId;
-  if (!confirm('Supprimer cette action ?')) return;
-  let saved = [];
-  try { saved = JSON.parse(localStorage.getItem('dash.customStocks') || '[]'); } catch(e){}
-  saved = saved.filter(s => s.id !== id);
-  localStorage.setItem('dash.customStocks', JSON.stringify(saved));
-  window.location.reload();
+  const company = COMPANIES.find(x => x.id === id);
+  if (!company) return;
+  if (company.custom) {
+    if (!confirm('Supprimer définitivement cette action ajoutée manuellement ?')) return;
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem('dash.customStocks') || '[]'); } catch(e){}
+    saved = saved.filter(s => s.id !== id);
+    localStorage.setItem('dash.customStocks', JSON.stringify(saved));
+    window.location.reload();
+  } else {
+    if (!confirm('Retirer ' + company.title + ' de la grille ?\n(Tu pourras la récupérer plus tard via le bouton 💤 Standby.)')) return;
+    setStandbyFlag(id, true);
+    const card = document.querySelector('.card[data-id="' + id + '"]');
+    if (card) card.classList.add('is-standby');
+  }
 });
 
 // Initial layout
