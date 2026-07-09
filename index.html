@@ -50,7 +50,7 @@
   body.dark .theme-btn { color: #fbbf24; }
   .grid {
     display: grid;
-    grid-template-columns: repeat(var(--cols, 2), 1fr);
+    grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
     gap: 20px;
   }
   @media (max-width: 1100px) { .grid { grid-template-columns: 1fr !important; } }
@@ -61,6 +61,8 @@
     box-shadow: var(--shadow);
     padding: 18px 20px;
     transition: background 0.25s;
+    min-width: 0;
+    overflow: hidden;
   }
   .card-title { color: var(--text-primary); }
   .stat-value { color: var(--text-primary); }
@@ -79,6 +81,7 @@
   body.dark .stat-label, body.dark .card-period, body.dark .card-released { color: #94a3b8; }
   .card-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
     gap: 8px;
