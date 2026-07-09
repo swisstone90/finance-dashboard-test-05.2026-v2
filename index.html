@@ -1540,7 +1540,7 @@ const COMPANIES = [
 
   // -------------------- 15. CATL Q1 2026 --------------------
   {
-    id: 'catl', title: 'CATL (300750.SZ)', period: 'Q1 2026 · EUR (conv.)',
+    id: 'catl', title: 'CATL', period: 'Q1 2026 · EUR (conv.)',
     currency: '€', unit: 'B', rev: 16.68, mcap: '€258B', tvSymbol: 'SZSE:300750', pe: '25', div: '1.5', released: 'Apr 24, 2026', nextRelease: 'Aug 22, 2026 (Q2)',
     footnote: 'Résultats publiés en RMB, convertis en EUR au taux ~7.74 CNY/EUR (juil. 2026). Stock chart en CNY (cotation Shenzhen).',
     stats: [
@@ -2090,6 +2090,9 @@ function logoUrl(domain, size) {
   // Google favicon service — works for any reachable domain, returns a square favicon
   return 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=' + size;
 }
+
+// Ticker affiché : remplace les codes numériques peu lisibles par un nom parlant
+function dispSym(sym) { return sym === '300750' ? 'CATL' : sym; }
 
 function cardLogoImg(c) {
   if (!c || !c.tvSymbol) return '';
@@ -2721,7 +2724,7 @@ function buildScatterChart() {
     return {
       x: r40, y: pe,
       label: (c.title || '').replace(/\s*\(.*\)/,''),
-      ticker: (c.tvSymbol || '').split(':').pop(),
+      ticker: dispSym((c.tvSymbol || '').split(':').pop()),
       r40, pe,
       r40Old, peOld,
       color: r40 >= 40 ? '#16a34a' : '#dc2626'
@@ -2958,7 +2961,7 @@ function renderTimeline() {
         const domain = TICKER_DOMAIN[sym];
         const logo = domain ? '<img src="' + logoUrl(domain, 32) + '" alt="" onerror="this.style.display=\'none\'">' : '';
         const day = e.date.getDate();
-        html += '<div class="timeline-entry">' + logo + '<span class="ticker">' + sym + '</span><span class="day">· '+day+'</span></div>';
+        html += '<div class="timeline-entry">' + logo + '<span class="ticker">' + dispSym(sym) + '</span><span class="day">· '+day+'</span></div>';
       });
     }
     html += '</div>';
@@ -2984,7 +2987,7 @@ function renderQuadrantTables() {
     const ratioColor = (r40 != null && pe > 0 && r40/pe >= 1) ? 'good' : 'bad';
     const name = (c.title || '').replace(/\s*\(.*\)/, '');
     return logo
-      + '<div class="qname">' + name + '<span class="ticker">'+sym+'</span></div>'
+      + '<div class="qname">' + name + '<span class="ticker">'+dispSym(sym)+'</span></div>'
       + '<div class="qmetric ' + r40Color + '">R40 ' + (r40 != null ? r40 : 'n/m') + '</div>'
       + '<div class="qmetric ' + peColor + '">P/E ' + (pe > 0 ? pe : 'n/m') + '</div>'
       + '<div class="qmetric ' + ratioColor + '">' + r40pe + '</div>';
@@ -3112,7 +3115,7 @@ function buildCompareChart() {
     }
     // Skip if all values are null
     if (yVals.every(v => v == null)) return;
-    const sym = (c.tvSymbol || '').split(':').pop();
+    const sym = dispSym((c.tvSymbol || '').split(':').pop());
     const cleanName = (c.title || '').replace(/\s*\(.*\)/, '');
     traces.push({
       x: dates, y: yVals,
