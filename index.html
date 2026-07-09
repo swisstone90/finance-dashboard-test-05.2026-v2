@@ -3075,6 +3075,14 @@ function setAnalysisView(active) {
 let COMPARE_METRIC = 'r40pe';
 let COMPARE_TAG_FILTER = '';
 
+// Palette + styles de trait pour la vue comparée : 14 couleurs distinctes,
+// puis on recycle en traitillé, puis en pointillé → combinaison unique par société.
+const COMPARE_COLORS = [
+  '#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2',
+  '#17becf','#bcbd22','#0d3b66','#f95738','#16a34a','#7c3aed','#64748b'
+];
+const COMPARE_DASHES = ['solid','dash','dot'];
+
 function buildCompareChart() {
   const host = document.getElementById('compare-chart');
   if (!host) return;
@@ -3110,7 +3118,11 @@ function buildCompareChart() {
       x: dates, y: yVals,
       name: sym,
       type: 'scatter', mode: 'lines',
-      line: { width: 1.8, shape: 'spline' },
+      line: {
+        width: 1.8, shape: 'spline',
+        color: COMPARE_COLORS[total % COMPARE_COLORS.length],
+        dash: COMPARE_DASHES[Math.floor(total / COMPARE_COLORS.length) % COMPARE_DASHES.length]
+      },
       hovertemplate: '<b>'+cleanName+' ('+sym+')</b><br>'+
         (COMPARE_METRIC === 'r40pe' ? 'R40/P/E' : (COMPARE_METRIC === 'r40' ? 'Rule of 40' : 'P/E TTM'))+
         ': %{y:.2f}<br>%{x}<extra></extra>',
