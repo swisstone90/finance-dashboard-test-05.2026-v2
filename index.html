@@ -679,6 +679,7 @@
   <button class="global-toggle theme-btn" id="btn-theme" title="Toggle dark / light mode">🌙 Dark</button>
   <button class="global-toggle add-stock-btn" id="btn-add-stock" title="Ajouter une action manuellement">➕ Add stock</button>
   <button class="global-toggle" id="btn-manage-standby" title="Voir / réactiver les sociétés en standby">💤 Standby (<span id="standby-count">0</span>)</button>
+  <button class="global-toggle" id="btn-pe-mode" title="Basculer les chips P/E entre trailing (TTM) et forward (estimations analystes, via Refresh Yahoo)">P/E: TTM</button>
   <div class="layout-control" title="Chart height (Sankey + stock charts)">
     <span class="layout-label">📏 Height</span>
     <button class="layout-btn" id="btn-height-dec">−</button>
@@ -708,6 +709,7 @@
     <select id="sort-select" class="sort-select">
       <option value="default">Default order</option>
       <option value="release">Latest results ↓</option>
+      <option value="next">Next release ↑</option>
       <option value="pe">P/E ratio ↓</option>
       <option value="net">Net profit % ↓</option>
       <option value="gross">Gross margin % ↓</option>
@@ -2094,6 +2096,16 @@ function logoUrl(domain, size) {
 // Ticker affiché : remplace les codes numériques peu lisibles par un nom parlant
 function dispSym(sym) { return sym === '300750' ? 'CATL' : sym; }
 
+// Chip P/E : TTM ou Forward selon PE_MODE (le forward vient du Refresh Yahoo)
+function peChip(c, live) {
+  const liveTag = live ? ' - live' : '';
+  if (PE_MODE === 'fwd') {
+    const v = (c.peFwd != null && c.peFwd !== '') ? c.peFwd : 'n/a';
+    return '<span class="pe-pill" title="Forward P/E (estimations analystes 12 mois)'+liveTag+'">Fwd P/E '+v+'</span>';
+  }
+  return c.pe ? '<span class="pe-pill" title="P/E ratio (TTM)'+liveTag+'">P/E '+c.pe+'</span>' : '';
+}
+
 function cardLogoImg(c) {
   if (!c || !c.tvSymbol) return '';
   const sym = c.tvSymbol.split(':').pop().toUpperCase();
@@ -2119,6 +2131,9 @@ let STANDBY = [];
 
 // Global time range for all stock charts: '12M' | '60M' | 'ALL' (TradingView-native ranges)
 let STOCK_RANGE = '60M';
+
+// Mode d'affichage du chip P/E : 'ttm' (trailing) ou 'fwd' (forward, via Yahoo)
+let PE_MODE = 'ttm';
 try { STANDBY = JSON.parse(localStorage.getItem('dash.standby') || '[]'); } catch(e){ STANDBY = []; }
 function isStandby(id) { return STANDBY.indexOf(id) >= 0; }
 function setStandbyFlag(id, on) {
@@ -2158,7 +2173,7 @@ COMPANIES.forEach(c => {
   const stats = c.stats.map(s => '<div class="stat"><span class="stat-label">'+s[0]+'</span><span class="stat-value">'+s[1]+'</span><span class="stat-yoy '+s[3]+'">'+s[2]+'</span></div>').join('');
   const footnote = c.footnote ? '<div class="footer-note">'+c.footnote+'</div>' : '';
   const mcapHtml = c.mcap ? '<span class="mcap-pill" title="Market cap">'+c.mcap+'</span>' : '';
-  const peHtml = c.pe ? '<span class="pe-pill" title="P/E ratio (TTM)">P/E '+c.pe+'</span>' : '';
+  const peHtml = peChip(c);
   // Rule of 40 chip: read current value from RULE40_HISTORY (last anchor)
   const r40Hist = (typeof RULE40_HISTORY !== 'undefined') ? RULE40_HISTORY[c.id] : null;
   const r40Val = c.custom ? c.r40val : (r40Hist ? r40Hist[r40Hist.length - 1] : null);
@@ -3268,6 +3283,10 @@ async function softRefresh() {
     } else if (q.trailingPE != null && q.trailingPE <= 0) {
       c.pe = 'n/m';
     }
+    // forward PE
+    if (q.forwardPE != null && q.forwardPE > 0 && q.forwardPE < 1000) {
+      c.peFwd = q.forwardPE.toFixed(0);
+    }
     // dividend yield
     if (q.trailingAnnualDividendYield != null) {
       c.div = (q.trailingAnnualDividendYield * 100).toFixed(2);
@@ -3280,7 +3299,12 @@ async function softRefresh() {
   btn.textContent = '🔄 Refresh';
   btn.disabled = false;
   updateLastRefreshTimestamp();
-  // Soft-update chips in DOM
+  renderChips();
+  console.log('[Refresh] Updated '+updated+' tickers');
+}
+
+// Re-render les chips de toutes les cartes (utilisé par Refresh et le switch P/E)
+function renderChips() {
   COMPANIES.forEach(c => {
     const card = document.querySelector('.card[data-id="'+c.id+'"]');
     if (!card) return;
@@ -3288,7 +3312,7 @@ async function softRefresh() {
     if (!pillRow) return;
     // Rebuild pill HTML
     const mcapH = c.mcap ? '<span class="mcap-pill" title="Market cap">'+c.mcap+'</span>' : '';
-    const peH = c.pe ? '<span class="pe-pill" title="P/E ratio (TTM) - live">P/E '+c.pe+'</span>' : '';
+    const peH = peChip(c, true);
     const r40Hist = (typeof RULE40_HISTORY !== 'undefined') ? RULE40_HISTORY[c.id] : null;
     const r40V = c.custom ? c.r40val : (r40Hist ? r40Hist[r40Hist.length - 1] : null);
     let r40H = '';
@@ -3303,10 +3327,19 @@ async function softRefresh() {
     const divH = (c.div != null && c.div !== '') ? '<span class="div-pill" title="Annual dividend yield - live">Div '+c.div+'%</span>' : '';
     pillRow.innerHTML = peH + r40peH + r40H + mcapH + divH;
   });
-  console.log('[Refresh] Updated '+updated+' tickers');
 }
 
 document.getElementById('btn-refresh').addEventListener('click', softRefresh);
+
+// Switch P/E TTM <-> Forward (chips uniquement — scatter et R40/PE restent en TTM)
+document.getElementById('btn-pe-mode').addEventListener('click', () => {
+  PE_MODE = (PE_MODE === 'ttm') ? 'fwd' : 'ttm';
+  const b = document.getElementById('btn-pe-mode');
+  b.textContent = PE_MODE === 'fwd' ? 'P/E: Forward' : 'P/E: TTM';
+  b.classList.toggle('active', PE_MODE === 'fwd');
+  renderChips();
+  if (PE_MODE === 'fwd' && !COMPANIES.some(c => c.peFwd != null)) softRefresh();
+});
 // Initial fetch on page load
 setTimeout(softRefresh, 800);
 
@@ -3414,6 +3447,7 @@ function getRule40(c) {
 const SORT_FNS = {
   default: (c, i) => i,
   release: c => { const d = parseReleaseDate(c.released); return d ? -d.getTime() : Number.POSITIVE_INFINITY; },
+  next:    c => { const d = parseReleaseDate(c.nextRelease); return d ? d.getTime() : Number.POSITIVE_INFINITY; },
   pe:    c => -getPENum(c),
   net:   c => -getNetPct(c),
   gross: c => -getGrossPct(c),
